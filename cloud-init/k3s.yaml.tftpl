@@ -1,0 +1,23 @@
+#cloud-config
+hostname: k3s
+users:
+  - name: mert
+    groups: [sudo]
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+package_update: true
+packages:
+  - curl
+runcmd:
+  # Install k3s with its own networking turned off so Cilium can take over.
+  # Nodes sit NotReady until Cilium is installed (Layer 3). That is expected.
+  - >-
+    curl -sfL https://get.k3s.io | sh -s - server
+    --flannel-backend=none
+    --disable-network-policy
+    --disable-kube-proxy
+    --disable=servicelb
+    --disable=traefik
+    --write-kubeconfig-mode=0644

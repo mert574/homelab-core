@@ -1,0 +1,13 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored.
+# The network values already have correct defaults in variables.tf, so the only
+# things you really must set here are the secrets (api token, password) and your
+# SSH key. Anything sensitive should come from a SOPS-encrypted file or your
+# shell env once we wire that up, not from a plain file you keep.
+
+# LAN is 192.168.178.0/24 (Fritz!Box). Host is 192.168.178.100.
+# pve_endpoint, lan_gateway, and pihole_ip default to the right values already.
+
+pve_api_token = "tofu@pve!homelab=00000000-0000-0000-0000-000000000000"
+
+ssh_public_key   = "ssh-ed25519 AAAA... you@laptop"
+ct_root_password = "change-me"

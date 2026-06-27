@@ -1,0 +1,38 @@
+# OpenTofu / Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+
+# Real variable values and secrets. Commit only the *.example versions.
+*.tfvars
+!*.tfvars.example
+*.auto.tfvars
+
+# Secrets. The repo is PUBLIC, so only sops-encrypted files may be committed.
+# Plaintext secret files never get committed; the *.enc.* versions do.
+secrets/*.env
+!secrets/*.enc.env
+!secrets/*.env.example
+secrets/*.yaml
+!secrets/*.enc.yaml
+
+# age private key — never in the repo, never on the USB
+age.key
+keys.txt
+*.agekey
+
+# kubeconfig / talosconfig pulled from the cluster
+kubeconfig
+*.kubeconfig
+.kube/
+
+# SSH keys
+id_rsa
+id_ed25519
+*.pem
+
+# OS noise
+.DS_Store

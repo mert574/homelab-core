@@ -1,0 +1,13 @@
+# Announce the LB IPs on the LAN over L2/ARP so they're reachable.
+apiVersion: cilium.io/v2alpha1
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: lan-l2
+spec:
+  loadBalancerIPs: true
+  # the node's LAN NIC; adjust if the k3s VM names it differently (ip link)
+  interfaces:
+    - ^e.+
+  nodeSelector:
+    matchLabels:
+      kubernetes.io/os: linux

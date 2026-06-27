@@ -1,0 +1,5 @@
+# Argo CD defaults are fine for one node. TLS is terminated upstream (Cloudflare
+# + the Gateway), so run the server plain HTTP behind them.
+configs:
+  params:
+    server.insecure: true

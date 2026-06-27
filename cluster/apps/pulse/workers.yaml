@@ -1,0 +1,145 @@
+# The headless services: no app port, just the event pipeline + a health port.
+# scheduler -> worker -> alerting -> notifier. Single replicas on one node.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scheduler
+  namespace: pulse
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: scheduler }
+  template:
+    metadata:
+      labels: { app: scheduler }
+    spec:
+      imagePullSecrets: [{ name: ghcr }]
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: scheduler
+          image: ghcr.io/mert574/pulse-scheduler:main
+          ports: [{ name: health, containerPort: 9080 }]
+          envFrom:
+            - configMapRef: { name: pulse-config }
+            - secretRef: { name: pulse-secrets }
+          livenessProbe:
+            httpGet: { path: /healthz, port: health }
+          readinessProbe:
+            httpGet: { path: /readyz, port: health }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { memory: 512Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: pulse
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: worker }
+  template:
+    metadata:
+      labels: { app: worker }
+    spec:
+      imagePullSecrets: [{ name: ghcr }]
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: worker
+          image: ghcr.io/mert574/pulse-worker:main
+          ports: [{ name: health, containerPort: 9080 }]
+          envFrom:
+            - configMapRef: { name: pulse-config }
+            - secretRef: { name: pulse-secrets }
+          livenessProbe:
+            httpGet: { path: /healthz, port: health }
+          readinessProbe:
+            httpGet: { path: /readyz, port: health }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 200m, memory: 128Mi }
+            limits: { memory: 256Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alerting
+  namespace: pulse
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: alerting }
+  template:
+    metadata:
+      labels: { app: alerting }
+    spec:
+      imagePullSecrets: [{ name: ghcr }]
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: alerting
+          image: ghcr.io/mert574/pulse-alerting:main
+          ports: [{ name: health, containerPort: 9080 }]
+          envFrom:
+            - configMapRef: { name: pulse-config }
+            - secretRef: { name: pulse-secrets }
+          livenessProbe:
+            httpGet: { path: /healthz, port: health }
+          readinessProbe:
+            httpGet: { path: /readyz, port: health }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 250m, memory: 256Mi }
+            limits: { memory: 512Mi }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notifier
+  namespace: pulse
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: notifier }
+  template:
+    metadata:
+      labels: { app: notifier }
+    spec:
+      imagePullSecrets: [{ name: ghcr }]
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: notifier
+          image: ghcr.io/mert574/pulse-notifier:main
+          ports: [{ name: health, containerPort: 9080 }]
+          envFrom:
+            - configMapRef: { name: pulse-config }
+            - secretRef: { name: pulse-secrets }
+          livenessProbe:
+            httpGet: { path: /healthz, port: health }
+          readinessProbe:
+            httpGet: { path: /readyz, port: health }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { memory: 256Mi }

@@ -1,0 +1,28 @@
+# The runner scale set, registered to the pulse repo. Scales 0 -> N on queued
+# jobs, back to 0 when idle. Use `runs-on: homelab` in workflows.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: arc-runner-set
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1" # after the controller (CRDs)
+spec:
+  project: default
+  source:
+    repoURL: ghcr.io/actions/actions-runner-controller-charts
+    chart: gha-runner-scale-set
+    targetRevision: 0.14.2
+    helm:
+      valuesObject:
+        githubConfigUrl: "https://github.com/mert574/pulse"
+        githubConfigSecret: arc-github # pre-created from the PAT (see README)
+        runnerScaleSetName: homelab
+        minRunners: 0
+        maxRunners: 3
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: arc-runners
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true]

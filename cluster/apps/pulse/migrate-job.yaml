@@ -1,0 +1,29 @@
+# Apply pending DB migrations before each sync (Argo PreSync hook). The very first
+# deploy needs the schema bootstrapped once; see README.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pulse-migrate
+  namespace: pulse
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      imagePullSecrets: [{ name: ghcr }]
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: migrate
+          image: ghcr.io/mert574/pulse-migrate:main
+          envFrom:
+            - configMapRef: { name: pulse-config }
+            - secretRef: { name: pulse-secrets }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }

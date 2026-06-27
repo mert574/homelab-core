@@ -1,0 +1,25 @@
+# app.pulsepager.com: the API plane goes to the api service, everything else to
+# the Garage bucket serving the SPA. Same origin, so auth cookies still work.
+# More specific paths win, so /api etc. beat the catch-all.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: pulse
+  namespace: pulse
+spec:
+  parentRefs:
+    - name: main
+      namespace: gateway
+  hostnames:
+    - "app.pulsepager.com" # TODO: your domain
+  rules:
+    - matches:
+        - path: { type: PathPrefix, value: /api }
+        - path: { type: PathPrefix, value: /auth }
+        - path: { type: PathPrefix, value: /.well-known/jwks.json }
+      backendRefs:
+        - name: api
+          port: 8080
+    - backendRefs: # default: the SPA from Garage
+        - name: garage-web
+          port: 80

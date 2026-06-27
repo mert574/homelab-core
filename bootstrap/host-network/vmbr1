@@ -1,0 +1,27 @@
+# Isolated NAT bridge for the ai container (homelab-core).
+# vmbr1 is an internal-only bridge: the ai box is the only thing on it. The host
+# NATs it out to the internet via the LAN uplink (vmbr0) but drops anything it
+# sends toward private networks, so it can reach the internet but NOT the LAN or
+# the other guests. Enforced here on the host because the ai box is untrusted and
+# may have root in its own container.
+
+auto vmbr1
+iface vmbr1 inet static
+    address 10.10.10.1/24
+    bridge-ports none
+    bridge-stp off
+    bridge-fd 0
+    # route the ai subnet out to the internet
+    post-up   sysctl -w net.ipv4.ip_forward=1
+    post-up   iptables -t nat -A POSTROUTING -s 10.10.10.0/24 -o vmbr0 -j MASQUERADE
+    # block the ai subnet from every private range (covers the LAN + all guests)
+    post-up   iptables -I FORWARD -s 10.10.10.0/24 -d 10.0.0.0/8 -j DROP
+    post-up   iptables -I FORWARD -s 10.10.10.0/24 -d 172.16.0.0/12 -j DROP
+    post-up   iptables -I FORWARD -s 10.10.10.0/24 -d 192.168.0.0/16 -j DROP
+    # the host itself exposes nothing to the ai box
+    post-up   iptables -I INPUT -i vmbr1 -j DROP
+    post-down iptables -D INPUT -i vmbr1 -j DROP
+    post-down iptables -D FORWARD -s 10.10.10.0/24 -d 192.168.0.0/16 -j DROP
+    post-down iptables -D FORWARD -s 10.10.10.0/24 -d 172.16.0.0/12 -j DROP
+    post-down iptables -D FORWARD -s 10.10.10.0/24 -d 10.0.0.0/8 -j DROP
+    post-down iptables -t nat -D POSTROUTING -s 10.10.10.0/24 -o vmbr0 -j MASQUERADE

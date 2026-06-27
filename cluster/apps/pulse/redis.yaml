@@ -1,0 +1,49 @@
+# In-cluster Redis: kv layer + event bus (Redis Streams). No persistence; losing
+# in-flight bus events on a restart is fine (at-least-once redelivery). Durable
+# state lives in Postgres, outside the cluster.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: pulse
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: redis }
+  template:
+    metadata:
+      labels: { app: redis }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          args: ["--save", "", "--appendonly", "no"]
+          ports:
+            - containerPort: 6379
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: pulse
+spec:
+  selector: { app: redis }
+  ports:
+    - port: 6379
+      targetPort: 6379

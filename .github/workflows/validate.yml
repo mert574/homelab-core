@@ -1,0 +1,54 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tofu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+      - run: tofu fmt -check -recursive
+      - run: tofu -chdir=tofu init -backend=false -input=false
+      - run: tofu -chdir=tofu validate
+
+  nix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v30
+        with:
+          extra_nix_config: "experimental-features = nix-command flakes"
+      # sops sopsFile path literals must resolve at eval; the real encrypted
+      # files are created at deploy. Empty placeholders let the flake evaluate.
+      - name: placeholder secret files
+        run: |
+          touch secrets/homelab.enc.env secrets/mullvad.wg.enc \
+                secrets/digarr.env.enc secrets/cloudflared.creds.enc
+          git add -A
+      - run: nix flake check ./nix --no-build
+
+  k8s:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+      - run: go install github.com/yannh/kubeconform/cmd/kubeconform@latest
+      - run: |
+          kubeconform -strict -ignore-missing-schemas -summary \
+            -schema-location default \
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+            cluster/apps cluster/bootstrap/root-app.yaml
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: find . -name '*.sh' -not -path './.git/*' -exec shellcheck {} +
+      - name: actionlint
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          ./actionlint -color

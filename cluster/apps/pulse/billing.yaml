@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: billing
+  namespace: pulse
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: billing }
+  template:
+    metadata:
+      labels: { app: billing }
+    spec:
+      imagePullSecrets: [{ name: ghcr }]
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: billing
+          image: ghcr.io/mert574/pulse-billing:main
+          ports:
+            - { name: http, containerPort: 8081 }
+            - { name: health, containerPort: 9080 }
+          envFrom:
+            - configMapRef: { name: pulse-config }
+            - secretRef: { name: pulse-secrets }
+          livenessProbe:
+            httpGet: { path: /healthz, port: health }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /readyz, port: health }
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { memory: 256Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: billing
+  namespace: pulse
+spec:
+  selector: { app: billing }
+  ports:
+    - port: 8081
+      targetPort: 8081

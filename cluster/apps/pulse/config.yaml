@@ -1,0 +1,32 @@
+# Non-secret Pulse config. Secrets come from the `pulse-secrets` Secret that
+# create-secrets.sh builds from the encrypted env.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pulse-config
+  namespace: pulse
+data:
+  PULSE_LOG_LEVEL: "info"
+  PULSE_REGION: "eu-central"
+  # one Redis covers the kv layer and the event bus (Redis Streams), no Kafka
+  PULSE_BUS: "redis"
+  PULSE_REDIS_ADDR: "redis:6379"
+  PULSE_HEALTH_ADDR: ":9080"
+  # billing's app port defaults to :8080; set it to match its Service/manifest.
+  # Only the billing binary reads this, the others ignore it.
+  PULSE_BILLING_ADDR: ":8081"
+  # TODO: your real domain
+  PULSE_APP_BASE_URL: "https://app.pulsepager.com"
+  PULSE_COOKIE_SECURE: "true"
+  PULSE_JWT_ISSUER: "pulse"
+  PULSE_JWT_AUDIENCE: "pulse-api"
+  PULSE_JWT_KID: "pulse-1"
+  PULSE_GOOGLE_ISSUER_URL: "https://accounts.google.com"
+  PULSE_GOOGLE_REDIRECT_URL: "https://app.pulsepager.com/auth/google/callback"
+  PULSE_GITHUB_REDIRECT_URL: "https://app.pulsepager.com/auth/github/callback"
+  PULSE_SMTP_HOST: ""
+  PULSE_SMTP_PORT: "587"
+  PULSE_SMTP_USERNAME: "resend"
+  PULSE_SMTP_FROM: "Pulse Pager <no-reply@pulsepager.com>"
+  PULSE_SMTP_TLS_MODE: "starttls"
+  PULSE_BILLING_PROVIDER: "stub"

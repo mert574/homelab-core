@@ -1,0 +1,33 @@
+# Cilium owns all cluster networking, replacing the k3s defaults we disabled
+# (flannel, kube-proxy, servicelb, traefik).
+
+kubeProxyReplacement: true
+# Without kube-proxy, cilium needs the API server address directly. k3s single
+# node: the node's own IP.
+k8sServiceHost: "192.168.178.104"
+k8sServicePort: "6443"
+
+# LoadBalancer IPs on the LAN via L2/ARP (replaces MetalLB/ServiceLB). The pool +
+# announcement policy CRs live in cluster/apps/networking.
+l2announcements:
+  enabled: true
+externalIPs:
+  enabled: true
+# l2announcements is chatty against the API; raise the client rate limit.
+k8sClientRateLimit:
+  qps: 50
+  burst: 100
+
+# Gateway API ingress (replaces Traefik). CRDs are applied in install.sh first.
+gatewayAPI:
+  enabled: true
+
+hubble:
+  enabled: true
+  relay:
+    enabled: true
+  ui:
+    enabled: true
+
+operator:
+  replicas: 1 # single node

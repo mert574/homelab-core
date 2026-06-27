@@ -1,0 +1,28 @@
+# Garage runs in an LXC outside the cluster, so we point a selector-less Service
+# at its web port via a manual EndpointSlice. The Gateway sends the SPA traffic
+# here; Garage serves the bucket matching the request Host (app.pulsepager.com).
+apiVersion: v1
+kind: Service
+metadata:
+  name: garage-web
+  namespace: pulse
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3902
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: garage-web
+  namespace: pulse
+  labels:
+    kubernetes.io/service-name: garage-web
+addressType: IPv4
+ports:
+  - name: http
+    port: 3902
+endpoints:
+  - addresses:
+      - "192.168.178.109"
