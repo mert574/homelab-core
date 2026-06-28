@@ -16,6 +16,9 @@ in
   # claude-code and google-chrome are unfree.
   nixpkgs.config.allowUnfree = true;
 
+  # flakes, so `nixos-rebuild --flake` works without the extra flag.
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
   time.timeZone = "Europe/Berlin";
 
   # SSH is how you get in. Keys only, no passwords.

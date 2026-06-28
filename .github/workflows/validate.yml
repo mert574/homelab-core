@@ -31,6 +31,33 @@ jobs:
           git add -A
       - run: nix flake check ./nix --no-build
 
+  # Real build smoke test: assemble every host's system closure on a native
+  # x86_64-linux runner (the mac can't, it's aarch64-darwin). Catches build
+  # breaks that eval alone misses. Generic packages come from cache.nixos.org;
+  # only the config-specific derivations build here.
+  nix-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v30
+        with:
+          extra_nix_config: "experimental-features = nix-command flakes"
+      - name: placeholder secret files
+        run: |
+          touch secrets/homelab.enc.env secrets/mullvad.wg.enc \
+                secrets/digarr.env.enc secrets/cloudflared.creds.enc
+          git add -A
+      - name: build all host toplevels
+        run: |
+          nix build --no-link --print-out-paths \
+            ./nix#nixosConfigurations.admin.config.system.build.toplevel \
+            ./nix#nixosConfigurations.ai.config.system.build.toplevel \
+            ./nix#nixosConfigurations.playground.config.system.build.toplevel \
+            ./nix#nixosConfigurations.postgres.config.system.build.toplevel \
+            ./nix#nixosConfigurations.cloudflared.config.system.build.toplevel \
+            ./nix#nixosConfigurations.garage.config.system.build.toplevel \
+            ./nix#nixosConfigurations.media.config.system.build.toplevel
+
   k8s:
     runs-on: ubuntu-latest
     steps:

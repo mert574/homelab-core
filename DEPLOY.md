@@ -40,8 +40,8 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
 
 ## 4. NixOS hosts
 
-- [ ] `nixos-rebuild switch --flake .#<host>` for postgres, cloudflared, garage,
-      admin, ai, playground (admin/ai/playground are on-demand)
+- [ ] `scripts/apply-nixos.sh` configures every NixOS guest (nixos-rebuild inside
+      each via pct). The bootstrap runs it; run it by hand to re-apply after edits.
 - [ ] First-boot check: if a box has no IP, set `proxmoxLXC.manageNetwork` (see `nix/README.md`)
 - [ ] **garage** runtime: `garage layout assign ...`, then create the SPA bucket
       (`bucket create/alias/website/key`) - see `cluster/apps/pulse/README.md`
@@ -102,8 +102,9 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
 
 ## Not yet verified (treat first boot as testing, not guaranteed)
 
-- Nix configs are not `nix flake check`'d (no nix here); expect small fixes, esp. the
-  postgres password unit, the cloudflared sops template, and the garage `_file` options.
+- Nix configs pass `nix flake check` (eval) and CI builds every host toplevel, but
+  they've never run on a real box; expect small runtime fixes, esp. the postgres
+  password unit, the cloudflared sops template, and the garage `_file` options.
 - k8s manifests are not cluster-tested: Cilium values, the OCI-Helm Argo sources (ARC),
   the Gateway -> external-Garage routing, and ARC chart `0.14.2` may need tweaks.
 - Pulse images have never been built; the first `docker build` may surface a fix.

@@ -51,12 +51,13 @@ run_pipeline() {
   tofu -chdir="$REPO_ROOT/tofu" init -input=false
   tofu -chdir="$REPO_ROOT/tofu" apply -auto-approve
 
-  # The rest runs off the Proxmox host (it has no nix / cluster access yet):
-  echo "Layer 2 applied. Remaining steps (see DEPLOY.md):" >&2
-  echo "  - NixOS hosts, from a machine with nix:" >&2
-  echo "      nixos-rebuild switch --flake $REPO_ROOT/nix#<host> --target-host root@<ip>" >&2
-  echo "      (postgres, cloudflared, garage, media, admin, ai, playground)" >&2
-  echo "  - Layer 3: cluster/bootstrap/install.sh with KUBECONFIG from the k3s VM" >&2
+  # Configure every NixOS guest (nixos-rebuild inside each via pct).
+  sleep 10 # let the containers boot
+  bash "$REPO_ROOT/scripts/apply-nixos.sh"
+
+  # Layer 3 still runs once k3s is up and we have its kubeconfig:
+  echo "Guests configured. Next: cluster/bootstrap/install.sh with KUBECONFIG" >&2
+  echo "from the k3s VM (see DEPLOY.md)." >&2
 }
 
 main() {
