@@ -1,45 +1,21 @@
-# sops config. Files matching the path rule below are encrypted to every age
-# recipient listed, so any one of their private keys can decrypt:
-#   - your master key (the one the bootstrap installs on the host)
-#   - each NixOS host that needs secrets, via the age key derived from its SSH
-#     host key (sops-nix). Run `ssh-keyscan <host> | ssh-to-age` after a host
-#     first boots to get its age public key, paste it below, then re-encrypt:
-#       sops updatekeys secrets/homelab.enc.env
+# sops config. Everything is encrypted to one master age key, which the bootstrap
+# installs on every host. No per-host recipients.
 #
-# One-time setup of the master key:
-#   age-keygen -o age.key          # prints the age1... public key
-#   # put that public key in `master` below; keep age.key off the repo and USB
+# One-time setup:
+#   age-keygen -o age.key   # prints the age1... public key; put it in `master`
+#                           # below. Keep age.key off the repo (gitignored) + safe.
 #
 # Encrypt / edit:
 #   sops --encrypt secrets/homelab.env > secrets/homelab.enc.env
 #   sops secrets/homelab.enc.env
 
 keys:
-  # TODO: replace each with a real age public key (master + each host's ssh-to-age)
-  - &master      age1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsj3xxxx
-  - &postgres    age1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsj3yyyy
-  - &cloudflared age1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsj3zzzz
-  - &garage      age1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsj3gggg
-  - &media       age1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsj3mmmm
+  # TODO: replace with the real age public key from age-keygen
+  - &master age1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsj3xxxx
 
 creation_rules:
-  - path_regex: secrets/.*\.enc\.(env|ya?ml|json)$
+  # every encrypted secret file under secrets/ -> the master key
+  - path_regex: secrets/.*\.enc(\.env)?$
     key_groups:
       - age:
           - *master
-          - *postgres
-          - *cloudflared
-          - *garage
-          - *media
-  # Binary secret files for the media box (Mullvad wg config, digarr env)
-  - path_regex: secrets/.*\.(wg|env)\.enc$
-    key_groups:
-      - age:
-          - *master
-          - *media
-  # cloudflared tunnel credentials (binary), master + the cloudflared box
-  - path_regex: secrets/cloudflared\.creds\.enc$
-    key_groups:
-      - age:
-          - *master
-          - *cloudflared

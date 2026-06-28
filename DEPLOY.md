@@ -27,8 +27,8 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
 
 - [ ] `cp secrets/homelab.env.example secrets/homelab.env`, fill every `REPLACE`
 - [ ] `sops --encrypt secrets/homelab.env > secrets/homelab.enc.env`; delete the plaintext
-- [ ] After each NixOS host first-boots: `ssh-keyscan <host> | ssh-to-age`, add its key to
-      `.sops.yaml` recipients, `sops updatekeys secrets/homelab.enc.env`
+- [ ] The bootstrap installs the master age key on every host (one key, no per-host
+      recipients) at `/var/lib/sops-nix/key.txt`
 - [ ] JWT PEM is multiline: keep it quoted in the env, or mount it as a file and set
       `PULSE_JWT_PRIVATE_KEY_PATH`
 

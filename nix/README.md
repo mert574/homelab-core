@@ -36,7 +36,7 @@ nixos-rebuild switch --flake .#admin   # or ai / playground / postgres / cloudfl
 
 - AI isolation (host-enforced) lives in `bootstrap/host-network/`; run its
   `install.sh` on the host before bringing up the ai box.
-- Secrets need the per-host age keys added to `.sops.yaml` after first boot
+- Secrets use one master age key, installed on every host by the bootstrap
   (see `modules/sops.nix`).
 - `opencode` / `codex` come from unstable; bump the input if your pin lacks one.
 - First boot: if a box has no IP, the template ignored Proxmox's static IP, set

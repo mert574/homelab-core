@@ -1,9 +1,9 @@
 { ... }:
 {
-  # Secrets from the encrypted env, decrypted on the box via sops-nix using an age
-  # key derived from the host's SSH key. After first boot, add the host's age key
-  # (ssh-to-age) as a recipient in ../../.sops.yaml and re-encrypt.
+  # Secrets from the encrypted env, decrypted on each box via sops-nix with the
+  # single master age key the bootstrap installs at the path below. One key for
+  # every host, so there are no per-host recipients to manage.
   sops.defaultSopsFile = ../../secrets/homelab.enc.env;
   sops.defaultSopsFormat = "dotenv";
-  sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
+  sops.age.keyFile = "/var/lib/sops-nix/key.txt";
 }
