@@ -62,11 +62,10 @@ jobs:
           purge-prefixes: nix-${{ runner.os }}-
           purge-created: 0
           purge-primary-key: never
-      - name: placeholder secret files
-        run: |
-          touch secrets/homelab.enc.env secrets/mullvad.wg.enc \
-                secrets/digarr.env.enc secrets/cloudflared.creds.enc
-          git add -A
+      # Empty placeholders satisfy eval but fail the build: sops-nix parses the
+      # sops files at build time. Generate valid ones (throwaway key) instead.
+      - name: dummy sops secrets
+        run: nix shell nixpkgs#age nixpkgs#sops --command bash .github/ci-dummy-secrets.sh
       - name: build all host toplevels
         run: |
           nix build --no-link --print-out-paths \
@@ -94,6 +93,9 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+      # NOTE: when you enable this job, replace this with the REAL secrets/*.enc on
+      # the runner. Dummy/empty files build closures that don't match the hosts
+      # (sops-nix bakes the sops file into the closure), so they'd be wrong to push.
       - name: placeholder secret files
         run: |
           touch secrets/homelab.enc.env secrets/mullvad.wg.enc \
