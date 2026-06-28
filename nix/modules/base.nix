@@ -17,7 +17,29 @@ in
   nixpkgs.config.allowUnfree = true;
 
   # flakes, so `nixos-rebuild --flake` works without the extra flag.
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  #
+  # The LAN Garage cache is an extra substituter: CI builds and signs each host
+  # closure and pushes it there (see DEPLOY.md), so a re-apply pulls it prebuilt
+  # instead of rebuilding on every box. fallback + a short connect-timeout mean a
+  # missing or unreachable cache (first boot, before Garage is up) just falls back
+  # to cache.nixos.org and local builds, so it never blocks a rebuild.
+  nix.settings = {
+    experimental-features = [ "nix-command" "flakes" ];
+    substituters = lib.mkAfter [ "http://nix-cache.garage.lan:3902" ];
+    trusted-public-keys = lib.mkAfter [
+      # TODO: the cache public key from `nix-store --generate-binary-cache-key`
+      "nix-cache:REPLACE-base64-public-key"
+    ];
+    fallback = true;
+    connect-timeout = 5;
+  };
+
+  # Every host resolves the LAN names from the one central file (the same file is
+  # injected into the non-NixOS machines by scripts/inject-hosts.sh), so
+  # nix-cache.garage.lan and the rest work without a DNS server. The ai box is on
+  # the isolated bridge so those LAN IPs aren't routable there; the cache's
+  # fallback + connect-timeout above mean it just builds locally on ai.
+  networking.extraHosts = builtins.readFile ../../network/lan-hosts;
 
   time.timeZone = "Europe/Berlin";
 

@@ -51,8 +51,12 @@ run_pipeline() {
   tofu -chdir="$REPO_ROOT/tofu" init -input=false
   tofu -chdir="$REPO_ROOT/tofu" apply -auto-approve
 
+  # Let the guests boot, then spread the central LAN names to the non-NixOS
+  # machines (NixOS guests get them from their own config in the next step).
+  sleep 10
+  bash "$REPO_ROOT/scripts/inject-hosts.sh"
+
   # Configure every NixOS guest (nixos-rebuild inside each via pct).
-  sleep 10 # let the containers boot
   bash "$REPO_ROOT/scripts/apply-nixos.sh"
 
   # Layer 3 still runs once k3s is up and we have its kubeconfig:

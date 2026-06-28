@@ -9,6 +9,10 @@
 
   sops.secrets."GARAGE_RPC_SECRET" = { };
   sops.secrets."GARAGE_ADMIN_TOKEN" = { };
+  # S3 key the CI push job uses to write the Nix cache. Imported (not created) so
+  # it's deterministic and matches the same value held as a GitHub secret.
+  sops.secrets."NIX_CACHE_S3_ACCESS_KEY" = { };
+  sops.secrets."NIX_CACHE_S3_SECRET_KEY" = { };
 
   services.garage = {
     enable = true;
@@ -47,4 +51,20 @@
   };
 
   networking.firewall.allowedTCPPorts = [ 3900 3902 ]; # S3 + web
+
+  # Set up Garage in code instead of by hand: layout + the nix-cache bucket + the
+  # CI write key, via scripts/garage-setup.sh (idempotent, re-runs safely on every
+  # boot). The script reads its secrets from the sops-nix files below.
+  systemd.services.garage-setup = {
+    description = "Set up Garage layout, buckets and keys";
+    after = [ "garage.service" ];
+    requires = [ "garage.service" ];
+    wantedBy = [ "multi-user.target" ];
+    path = [ pkgs.garage pkgs.gnugrep pkgs.gawk pkgs.coreutils ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${pkgs.bash}/bin/bash ${../../scripts/garage-setup.sh}";
+    };
+  };
 }

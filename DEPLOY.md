@@ -40,11 +40,28 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
 
 ## 4. NixOS hosts
 
+- [ ] LAN names come from one file, `network/lan-hosts`. NixOS guests include it via
+      `networking.extraHosts`; `scripts/inject-hosts.sh` (run by the bootstrap) spreads
+      it to the Proxmox host, the Debian LXCs and the k3s VM. Re-run it after editing
+      the file. The k3s VM step needs its guest agent up, else it skips with a note.
 - [ ] `scripts/apply-nixos.sh` configures every NixOS guest (nixos-rebuild inside
       each via pct). The bootstrap runs it; run it by hand to re-apply after edits.
 - [ ] First-boot check: if a box has no IP, set `proxmoxLXC.manageNetwork` (see `nix/README.md`)
-- [ ] **garage** runtime: `garage layout assign ...`, then create the SPA bucket
-      (`bucket create/alias/website/key`) - see `cluster/apps/pulse/README.md`
+- [ ] **garage** layout, the nix-cache bucket, its alias/website and the CI write
+      key are set up automatically by the `garage-setup` service in
+      `nix/hosts/garage.nix` (`scripts/garage-setup.sh`). The SPA bucket is still in
+      `cluster/apps/pulse/README.md` (move it into `ensure_site` when you want it
+      automated too).
+- [ ] **Nix binary cache (Garage)**: lets re-applies pull host closures prebuilt
+      instead of rebuilding on each box (first boot still builds locally, that's
+      fine). The bucket/DNS/key are all in code; only the secret values are yours:
+  - `nix-store --generate-binary-cache-key nix-cache nix-cache.secret nix-cache.public`,
+    then put `nix-cache.public` in `nix/modules/base.nix` (`trusted-public-keys`)
+    and `nix-cache.secret` in the GitHub secret `NIX_CACHE_SIGNING_KEY`
+  - fill `NIX_CACHE_S3_ACCESS_KEY` / `NIX_CACHE_S3_SECRET_KEY` in the sops env AND
+    as GitHub secrets (same values: garage imports them, CI pushes with them)
+  - once the in-cluster runner exists, set repo variable `HOMELAB_RUNNER=true` to
+    activate the `nix-cache-push` job
 - [ ] **cloudflared**: `cloudflared tunnel create homelab` -> save the creds JSON as
       `secrets/cloudflared.creds.enc`; put the tunnel UUID, the Gateway LB IP, and your
       media hostnames in `nix/hosts/cloudflared.nix`; add a DNS route per hostname
@@ -105,6 +122,12 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
 - Nix configs pass `nix flake check` (eval) and CI builds every host toplevel, but
   they've never run on a real box; expect small runtime fixes, esp. the postgres
   password unit, the cloudflared sops template, and the garage `_file` options.
+- The Garage Nix cache is unverified until the machine is up. The `garage-setup`
+  service's exact CLI calls (`layout assign/apply`, `bucket alias`, `key import`)
+  may need tweaks against the pinned garage version, and the read path assumes
+  Garage's web port matches `Host: nix-cache.garage.lan:3902` to the bucket alias
+  with the port stripped (if it doesn't, alias the bucket `nix-cache.garage.lan:3902`
+  or move the web serving to port 80).
 - k8s manifests are not cluster-tested: Cilium values, the OCI-Helm Argo sources (ARC),
   the Gateway -> external-Garage routing, and ARC chart `0.14.2` may need tweaks.
 - Pulse images have never been built; the first `docker build` may surface a fix.

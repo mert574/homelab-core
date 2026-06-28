@@ -21,7 +21,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v30
         with:
-          extra_nix_config: "experimental-features = nix-command flakes"
+          # Authenticate GitHub fetches so flake-input resolution isn't rate
+          # limited (429). The lock pins revs, this raises the API limit too.
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
       # sops sopsFile path literals must resolve at eval; the real encrypted
       # files are created at deploy. Empty placeholders let the flake evaluate.
       - name: placeholder secret files
@@ -41,7 +45,23 @@ jobs:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v30
         with:
-          extra_nix_config: "experimental-features = nix-command flakes"
+          # Authenticate GitHub fetches so flake-input resolution isn't rate
+          # limited (429). The lock pins revs, this raises the API limit too.
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+      # Persist /nix/store across runs so only changed config derivations
+      # rebuild. gc trims the store to 5G before saving to stay under GitHub's
+      # 10G per-repo cache cap; key rotates when any nix file changes.
+      - uses: nix-community/cache-nix-action@v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('nix/**/*.nix') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+          gc-max-store-size-linux: 5G
+          purge: true
+          purge-prefixes: nix-${{ runner.os }}-
+          purge-created: 0
+          purge-primary-key: never
       - name: placeholder secret files
         run: |
           touch secrets/homelab.enc.env secrets/mullvad.wg.enc \
@@ -50,6 +70,49 @@ jobs:
       - name: build all host toplevels
         run: |
           nix build --no-link --print-out-paths \
+            ./nix#nixosConfigurations.admin.config.system.build.toplevel \
+            ./nix#nixosConfigurations.ai.config.system.build.toplevel \
+            ./nix#nixosConfigurations.playground.config.system.build.toplevel \
+            ./nix#nixosConfigurations.postgres.config.system.build.toplevel \
+            ./nix#nixosConfigurations.cloudflared.config.system.build.toplevel \
+            ./nix#nixosConfigurations.garage.config.system.build.toplevel \
+            ./nix#nixosConfigurations.media.config.system.build.toplevel
+
+  # Push the built host closures to the LAN Garage Nix cache so a re-apply pulls
+  # them prebuilt. Runs on the in-cluster self-hosted runner, which reaches Garage
+  # over the LAN, so nothing is exposed. Dormant until you set repo variable
+  # HOMELAB_RUNNER=true (after the machine and the runner are up), so it doesn't
+  # sit pending while there's no runner.
+  nix-cache-push:
+    if: vars.HOMELAB_RUNNER == 'true'
+    needs: nix-build
+    runs-on: [self-hosted, homelab]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v30
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+      - name: placeholder secret files
+        run: |
+          touch secrets/homelab.enc.env secrets/mullvad.wg.enc \
+                secrets/digarr.env.enc secrets/cloudflared.creds.enc
+          git add -A
+      - name: sign + push host closures to Garage
+        env:
+          # Garage access key for the nix-cache bucket, and the cache signing key
+          # (full `nix-store --generate-binary-cache-key` secret half).
+          AWS_ACCESS_KEY_ID: ${{ secrets.NIX_CACHE_S3_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.NIX_CACHE_S3_SECRET_KEY }}
+          NIX_CACHE_SIGNING_KEY: ${{ secrets.NIX_CACHE_SIGNING_KEY }}
+        run: |
+          umask 077
+          keyfile="$RUNNER_TEMP/nix-cache.key"
+          printf '%s' "$NIX_CACHE_SIGNING_KEY" > "$keyfile"
+          trap 'rm -f "$keyfile"' EXIT
+          store="s3://nix-cache?endpoint=http://192.168.178.109:3900&region=eu-central&secret-key=$keyfile"
+          nix copy --to "$store" \
             ./nix#nixosConfigurations.admin.config.system.build.toplevel \
             ./nix#nixosConfigurations.ai.config.system.build.toplevel \
             ./nix#nixosConfigurations.playground.config.system.build.toplevel \

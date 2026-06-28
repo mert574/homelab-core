@@ -1,0 +1,17 @@
+# Central LAN name -> IP map for homelab-core. Single source of truth.
+#   - NixOS guests include this verbatim via networking.extraHosts (nix/modules/base.nix)
+#   - the Proxmox host, the Debian LXCs and the k3s VM get it from scripts/inject-hosts.sh
+# Keep the IPs in sync with tofu/variables.tf. garage.lan is the hosting box;
+# nix-cache.garage.lan is one bucket vhost it serves (Garage matches on Host).
+192.168.178.100  proxmox.lan
+192.168.178.101  pihole.lan
+192.168.178.102  postgres.lan
+192.168.178.103  cloudflared.lan
+192.168.178.104  k3s.lan
+192.168.178.105  admin.lan
+192.168.178.107  playground.lan
+192.168.178.108  playground-debian.lan
+192.168.178.109  garage.lan nix-cache.garage.lan
+192.168.178.110  media.lan
+# ai is on the isolated 10.10.10.0/24 bridge (vmbr1), not routable from the LAN and
+# using public DNS, so it is intentionally left out here.
