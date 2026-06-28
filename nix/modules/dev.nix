@@ -12,7 +12,7 @@
     python3
 
     # node tools that used to be `npm i -g`
-    nodePackages.serve
+    serve
     bitwarden-cli # provides `bw`
     claude-code
 
