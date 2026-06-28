@@ -16,7 +16,7 @@ cluster/
   bootstrap/   # one-time install: cilium + argo + root app
   apps/
     networking/   # CiliumLoadBalancerIPPool, L2 policy, Gateway (synced by Argo)
-    <your apps>   # add SaaS apps here (Deployment/Service + HTTPRoute to the Gateway)
+    <your apps>   # add apps here (Deployment/Service + HTTPRoute to the Gateway)
 ```
 
 ## Traffic path

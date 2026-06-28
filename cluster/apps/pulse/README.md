@@ -1,6 +1,6 @@
 # Pulse
 
-Pulse (the SaaS) running in-cluster, synced by Argo. Simplified for one node:
+Pulse running in-cluster, synced by Argo. Simplified for one node:
 single replicas, `PULSE_BUS=redis` (one in-cluster Redis is kv + bus, no Kafka),
 Postgres is the external `postgres` LXC. The SPA is served from a Garage bucket,
 the API from the cluster, and the Gateway routes between them by path (same

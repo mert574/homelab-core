@@ -1,13 +1,10 @@
 # homelab-core
 
-Infrastructure as code for my home server. One small box runs everything: DNS,
-my Postgres data, and a k3s cluster that hosts my SaaS apps behind Cloudflare
-tunnels. Reflash a stock USB, boot, and this repo rebuilds the whole thing.
+Infrastructure as code for my home server. One small box runs everything: DNS, a
+shared Postgres instance for the apps, and a k3s cluster that runs them behind
+Cloudflare tunnels.
 
-This repo is public on purpose. That is safe because every secret in it is
-encrypted with SOPS + age, nothing inbound is open
-(Cloudflare tunnels are outbound only), and the age private key lives only on the
-box and in my own backup, never in the repo or on the USB.
+The repo is public; the env is encrypted with SOPS + age.
 
 ## Hardware
 
@@ -21,12 +18,12 @@ box and in my own backup, never in the repo or on the USB.
 One physical box running Proxmox VE. On top of Proxmox:
 
 - Stateful things live in their own LXC containers, kept out of the k3s cluster
-  so rebuilding the cluster never touches my data.
+  so rebuilding the cluster never touches their data.
 - The k3s VM is stateless and disposable. Snapshot before experiments, roll back
   when something breaks.
 - Cilium owns all cluster networking (CNI, load balancer IPs, ingress via Gateway
-  API, network policy). This matches what we run at work.
-- cloudflared exposes the SaaS apps. It runs in its own LXC while the cluster is
+  API, network policy).
+- cloudflared exposes the apps. It runs in its own LXC while the cluster is
   still something I rebuild often, so public traffic stays up across cluster
   rebuilds. Moves into the cluster later.
 
@@ -39,7 +36,7 @@ cloudflared (LXC)
    |  HTTP to one stable LAN IP
 Cilium Gateway (LoadBalancer IP from Cilium LB IPAM)
    |  host-based routing inside the cluster
-SaaS app pods  ->  Postgres (LXC, over the LAN)
+app pods  ->  Postgres (LXC, over the LAN)
 ```
 
 ## Guest layout and RAM budget
@@ -52,7 +49,7 @@ SaaS app pods  ->  Postgres (LXC, over the LAN)
 | pihole       | LXC  | 1    | 0.5GB  | LAN DNS + ad blocking, static IP     |
 | postgres     | LXC  | 2    | 0.5GB  | NixOS Postgres service               |
 | cloudflared  | LXC  | 1    | 0.25GB | tunnel to the Gateway                |
-| k3s          | VM   | 4    | 8GB    | stateless web stack, Cilium, my apps |
+| k3s          | VM   | 4    | 8GB    | stateless web stack, Cilium, the apps |
 | garage       | LXC  | 2    | 1GB    | S3 + static asset hosting            |
 | media        | LXC  | 4    | 2GB    | Jellyfin + *arr + discovery          |
 
@@ -70,9 +67,7 @@ On-demand guests, not autostarted, so ~0 RAM at rest; start one when you need it
 
 With only ~1.5GB free we're at the 16GB wall, so run one heavy on-demand box at a
 time. A few GB of SSD swap (or zram, `vm.swappiness=10`) absorbs spikes, but don't
-let the latency-sensitive boxes (k3s, postgres, redis) actually swap. The real fix
-is RAM: the M720q takes 2 SODIMMs up to 64GB, so a 32-64GB upgrade removes the
-constraint and is worth doing as the lab grows.
+let the latency-sensitive boxes (k3s, postgres, redis) actually swap.
 
 ## Network
 
@@ -116,7 +111,8 @@ stays primary, since Wi-Fi can't bridge the guest network.
 - **LVM-thin, not ZFS.** Single disk, no redundancy goal, so ZFS's ARC would just
   cost 1-2GB of RAM. LVM-thin is ~0 overhead and still snapshots.
 - **k3s networking off, Cilium on.** Cilium replaces flannel/kube-proxy/ServiceLB/
-  Traefik on eBPF (CNI, LB IPs, Gateway, policy). Keep CoreDNS, local-path, metrics-server.
+  Traefik on eBPF (CNI, LB IPs, Gateway, policy). Keep CoreDNS, local-path,
+  metrics-server. Matches what we run at work.
 - **Postgres + cloudflared are NixOS services, outside the cluster.** `nixos-rebuild`
   installs and runs them (no hollow container). Postgres stays out of k3s for rebuild
   safety; apps reach it over the LAN. Secrets via sops-nix.
@@ -145,7 +141,7 @@ lives here in git and is applied by a tool, so a rebuild is reflash + apply.
 - **Layer 2: guests** (`tofu/`). OpenTofu + the bpg/proxmox provider declares the
   LXCs and the k3s VM, with cloud-init for per-guest setup.
 - **Layer 3: GitOps** (`cluster/`). Argo CD pulls the cluster state: Cilium,
-  cloudflared config, and the SaaS apps.
+  cloudflared config, and the apps.
 
 See each directory's README for detail.
 
