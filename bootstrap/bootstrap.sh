@@ -5,8 +5,8 @@
 #   ./bootstrap/bootstrap.sh
 #
 # It takes the age private key, installs it where sops looks, checks it can
-# decrypt the repo's secrets, then launches Layers 2 and 3 detached so you can
-# disconnect right away.
+# decrypt the repo's secrets, sets up the host network, and applies Layer 2
+# (tofu). The NixOS hosts and Layer 3 run off-host afterwards (see DEPLOY.md).
 #
 # The key is read from a silent prompt (or piped stdin), never a command
 # argument, so it does not land in shell history or `ps`.
@@ -44,22 +44,28 @@ run_pipeline() {
   # Load secrets as env vars (TF_VAR_* go straight into OpenTofu).
   set -a; eval "$(sops --decrypt "$SECRETS_FILE")"; set +a
 
-  # TODO(Layer 2): tofu -chdir="$REPO_ROOT/tofu" init -input=false
-  #                tofu -chdir="$REPO_ROOT/tofu" apply -auto-approve
-  # TODO(Layer 3): install Argo CD on the k3s VM, install the age key into the
-  #                cluster (for KSOPS/sops-operator), apply the root app-of-apps.
-  echo "pipeline not wired yet (Layers 2 and 3 are still being built)" >&2
+  # Isolated vmbr1 bridge for the ai box (must exist before that container boots).
+  bash "$REPO_ROOT/bootstrap/host-network/install.sh"
+
+  # Layer 2: create the Proxmox guests.
+  tofu -chdir="$REPO_ROOT/tofu" init -input=false
+  tofu -chdir="$REPO_ROOT/tofu" apply -auto-approve
+
+  # The rest runs off the Proxmox host (it has no nix / cluster access yet):
+  echo "Layer 2 applied. Remaining steps (see DEPLOY.md):" >&2
+  echo "  - NixOS hosts, from a machine with nix:" >&2
+  echo "      nixos-rebuild switch --flake $REPO_ROOT/nix#<host> --target-host root@<ip>" >&2
+  echo "      (postgres, cloudflared, garage, media, admin, ai, playground)" >&2
+  echo "  - Layer 3: cluster/bootstrap/install.sh with KUBECONFIG from the k3s VM" >&2
 }
 
 main() {
   install_age_key
   verify_decrypt
 
-  # Launch the long-running pipeline detached so closing SSH does not kill it.
-  # Once Layers 2 and 3 are wired, swap the inline call for the systemd-run line.
-  #   systemd-run --unit=homelab-bootstrap --collect bash -c 'run_pipeline'
+  # tofu apply is long; wrap it in systemd-run if you want to disconnect mid-run.
   run_pipeline
-  echo "done. you can disconnect." >&2
+  echo "done." >&2
 }
 
 main "$@"
