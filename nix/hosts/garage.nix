@@ -5,8 +5,6 @@
 {
   imports = [ ../modules/base.nix ../modules/sops.nix ];
 
-  networking.hostName = "garage";
-
   sops.secrets."GARAGE_RPC_SECRET" = { };
   sops.secrets."GARAGE_ADMIN_TOKEN" = { };
   # S3 key the CI push job uses to write the Nix cache. Imported (not created) so

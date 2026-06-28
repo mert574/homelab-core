@@ -2,6 +2,4 @@
 { ... }:
 {
   imports = [ ../modules/base.nix ../modules/dev.nix ];
-
-  networking.hostName = "admin";
 }

@@ -10,8 +10,6 @@ in
 {
   imports = [ ../modules/base.nix ../modules/sops.nix ];
 
-  networking.hostName = "media";
-
   # Shared storage + a common group so every service can read/write. setgid (2)
   # so new files inherit the media group.
   users.groups.media.gid = 1500; # fixed so the container apps can write (PGID)

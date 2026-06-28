@@ -6,8 +6,6 @@
 {
   imports = [ ../modules/base.nix ../modules/sops.nix ];
 
-  networking.hostName = "cloudflared";
-
   # Tunnel credentials JSON from `cloudflared tunnel create` (see DEPLOY.md).
   sops.secrets."cloudflared-creds" = {
     format = "binary";

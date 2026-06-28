@@ -4,8 +4,6 @@
 {
   imports = [ ../modules/base.nix ../modules/sops.nix ];
 
-  networking.hostName = "postgres";
-
   # role passwords, decrypted from the env to files postgres can read.
   sops.secrets."PULSE_DB_PASSWORD".owner = "postgres";
   sops.secrets."DIGARR_DB_PASSWORD".owner = "postgres";

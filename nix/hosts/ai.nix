@@ -4,8 +4,6 @@
 {
   imports = [ ../modules/base.nix ];
 
-  networking.hostName = "ai";
-
   # LAN-isolated, so Pi-hole is unreachable; use public DNS.
   networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
 

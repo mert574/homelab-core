@@ -4,7 +4,5 @@
 {
   imports = [ ../modules/base.nix ../modules/dev.nix ];
 
-  networking.hostName = "playground";
-
   environment.systemPackages = [ pkgs.ffmpeg ];
 }
