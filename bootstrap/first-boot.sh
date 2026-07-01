@@ -61,8 +61,15 @@ install -d -m 700 /run/homelab
 install -m 600 "/mnt/homelab-key/$KEY_NAME" /run/homelab/age.key
 umount /mnt/homelab-key && rmdir /mnt/homelab-key
 
-# 3. Minimal tool to clone; bootstrap.sh installs the rest.
+# 3. Minimal tool to clone; bootstrap.sh installs the rest. Turn off the
+#    enterprise apt repos first (they 401 without a subscription and break update).
 export DEBIAN_FRONTEND=noninteractive
+sed -i 's/^deb/#deb/' /etc/apt/sources.list.d/pve-enterprise.list 2>/dev/null || true
+for f in /etc/apt/sources.list.d/*enterprise*.sources /etc/apt/sources.list.d/ceph*.sources; do
+  [ -e "$f" ] && mv "$f" "$f.disabled"
+done
+echo 'deb http://download.proxmox.com/debian/pve trixie pve-no-subscription' \
+  > /etc/apt/sources.list.d/pve-no-subscription.list
 command -v git >/dev/null 2>&1 || { apt-get update -qq && apt-get install -y -qq git; }
 [ -d "$REPO_DIR" ] || git clone "$REPO_URL" "$REPO_DIR"
 

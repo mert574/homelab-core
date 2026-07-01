@@ -26,17 +26,30 @@ SOPS_VERSION="3.13.2"
 TOFU_VERSION="1.12.3"
 # Node-local SSH key the bpg provider uses to reach the node (itself).
 NODE_SSH_KEY="/root/.ssh/id_ed25519_pve"
-# Templates the guests are built from.
-DEBIAN_CT_TEMPLATE="debian-13-standard_13.1-1_amd64.tar.zst"
+# NixOS LXC template we build (Debian one is picked dynamically at runtime).
 NIXOS_CT_TEMPLATE="/var/lib/vz/template/cache/nixos-proxmox-lxc.tar.xz"
 
 # --- tooling -----------------------------------------------------------------
+fix_pve_repos() {
+  # A fresh Proxmox has the enterprise repos on, which 401 without a subscription
+  # and break `apt-get update`. Turn them off and add the no-subscription repo.
+  sed -i 's/^deb/#deb/' /etc/apt/sources.list.d/pve-enterprise.list 2>/dev/null || true
+  local f
+  for f in /etc/apt/sources.list.d/*enterprise*.sources /etc/apt/sources.list.d/ceph*.sources; do
+    [ -e "$f" ] && mv "$f" "$f.disabled"
+  done
+  echo 'deb http://download.proxmox.com/debian/pve trixie pve-no-subscription' \
+    > /etc/apt/sources.list.d/pve-no-subscription.list
+}
+
 ensure_tools() {
   export DEBIAN_FRONTEND=noninteractive
+  fix_pve_repos
   local need_apt=()
   command -v git >/dev/null 2>&1 || need_apt+=(git)
   command -v age >/dev/null 2>&1 || need_apt+=(age)      # ships age-keygen too
   command -v curl >/dev/null 2>&1 || need_apt+=(curl)
+  command -v unzip >/dev/null 2>&1 || need_apt+=(unzip)  # the tofu release is a zip
   if [ "${#need_apt[@]}" -gt 0 ]; then
     apt-get update -qq
     apt-get install -y -qq "${need_apt[@]}"
@@ -96,10 +109,18 @@ ensure_node_ssh() {
 
 # --- guest templates ---------------------------------------------------------
 ensure_templates() {
-  # Debian LXC (pihole). pveam skips the download if it's already present.
-  if ! pveam list local 2>/dev/null | grep -q "$DEBIAN_CT_TEMPLATE"; then
-    pveam update
-    pveam download local "$DEBIAN_CT_TEMPLATE"
+  # The k3s VM's cloud-init is uploaded to `local` as a snippet, but fresh
+  # Proxmox `local` doesn't allow the snippets content type. Enable it.
+  pvesm set local --content vztmpl,iso,backup,snippets 2>/dev/null || true
+
+  # Debian LXC (pihole). Don't hardcode the point release: grab whatever
+  # debian-13-standard is current and point tofu at that exact volume id.
+  pveam update || true
+  local deb_tmpl
+  deb_tmpl="$(pveam available --section system 2>/dev/null | awk '/debian-13-standard/{print $NF}' | sort -V | tail -1)"
+  if [ -n "$deb_tmpl" ]; then
+    pveam list local 2>/dev/null | grep -q "$deb_tmpl" || pveam download local "$deb_tmpl"
+    export TF_VAR_debian_ct_template="local:vztmpl/$deb_tmpl"
   fi
 
   # NixOS LXC (every NixOS guest). Proxmox ships none, so build one with
