@@ -76,8 +76,11 @@ install_age_key() {
   if [ -t 0 ]; then
     echo "Paste the age private key, then press Ctrl-D:" >&2
   fi
+  # Read stdin fully first, so piping the key file into itself can't truncate it.
+  local key; key="$(cat)"
+  [ -n "$key" ] || { echo "no age key on stdin" >&2; exit 1; }
   install -d -m 700 "$AGE_KEY_DIR"
-  ( umask 077; cat > "$AGE_KEY_FILE" )
+  ( umask 077; printf '%s\n' "$key" > "$AGE_KEY_FILE" )
   chmod 600 "$AGE_KEY_FILE"
   echo "age key installed at $AGE_KEY_FILE" >&2
 }
@@ -124,18 +127,25 @@ ensure_templates() {
   fi
 
   # NixOS LXC (every NixOS guest). Proxmox ships none, so build one with
-  # nixos-generators. Needs nix; install it single-user if missing.
+  # nixos-generators. Needs nix; the official installer can't do unattended-root
+  # (no sudo, no nixbld group), so use the Determinate installer, which can.
   if [ ! -f "$NIXOS_CT_TEMPLATE" ]; then
-    if ! command -v nix >/dev/null 2>&1; then
-      echo "installing nix (to build the NixOS LXC template)" >&2
-      curl -fsSL https://nixos.org/nix/install | sh -s -- --no-daemon --yes
+    local nixbin=/nix/var/nix/profiles/default/bin/nix
+    if ! command -v nix >/dev/null 2>&1 && [ ! -x "$nixbin" ]; then
+      echo "installing nix (Determinate installer) to build the NixOS LXC template" >&2
+      command -v xz >/dev/null 2>&1 || apt-get install -y -qq xz-utils
+      curl -fsSL https://install.determinate.systems/nix | sh -s -- install --no-confirm
     fi
-    # shellcheck disable=SC1091
-    . /root/.nix-profile/etc/profile.d/nix.sh 2>/dev/null || . "$HOME/.nix-profile/etc/profile.d/nix.sh"
+    command -v nix >/dev/null 2>&1 || export PATH="/nix/var/nix/profiles/default/bin:$PATH"
+    # nixos-generators is deprecated (upstreamed). base.nix imports the nixpkgs
+    # proxmox-lxc module, which exposes system.build.tarball, so build that
+    # straight from the flake (admin has no sops deps, so it evals cleanly).
+    nix build --extra-experimental-features 'nix-command flakes' \
+      "$REPO_ROOT/nix#nixosConfigurations.admin.config.system.build.tarball" \
+      -o /tmp/nixos-lxc-result
     local out
-    nix --extra-experimental-features 'nix-command flakes' \
-      run github:nix-community/nixos-generators -- -f proxmox-lxc -o /tmp/nixos-lxc-result
-    out="$(readlink -f /tmp/nixos-lxc-result/tarball/*.tar.xz 2>/dev/null || readlink -f /tmp/nixos-lxc-result/*.tar.xz)"
+    out="$(find -L /tmp/nixos-lxc-result -name '*.tar.xz' | head -1)"
+    [ -n "$out" ] || { echo "NixOS template build produced no tarball" >&2; exit 1; }
     install -m644 "$out" "$NIXOS_CT_TEMPLATE"
     rm -rf /tmp/nixos-lxc-result
   fi

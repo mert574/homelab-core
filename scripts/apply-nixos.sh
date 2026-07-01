@@ -30,6 +30,14 @@ tar czf "$archive" -C "$REPO_ROOT" --exclude=.git --exclude=tofu/.terraform .
 apply() {
   local name="$1" vmid="$2"
   echo "== $name (CT $vmid) =="
+  # Some guests are started=false (on-demand). Start them to apply, and give the
+  # network a moment so nixos-rebuild can fetch. Restore the stopped ones after.
+  local was_stopped=0
+  if ! pct status "$vmid" | grep -q running; then
+    was_stopped=1
+    pct start "$vmid"
+    sleep 15
+  fi
   pct exec "$vmid" -- install -d -m 700 /var/lib/sops-nix
   pct push "$vmid" "$AGE_KEY" /var/lib/sops-nix/key.txt --perms 600
   pct push "$vmid" "$archive" /root/homelab-core.tgz
@@ -38,6 +46,8 @@ apply() {
   pct exec "$vmid" -- nixos-rebuild switch \
     --flake "/root/homelab-core/nix#$name" \
     --extra-experimental-features 'nix-command flakes'
+  # put on-demand guests back to sleep
+  [ "$was_stopped" = 1 ] && pct stop "$vmid" || true
 }
 
 for entry in "${hosts[@]}"; do

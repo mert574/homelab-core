@@ -36,6 +36,10 @@ in
   # fallback + connect-timeout above mean it just builds locally on ai.
   networking.extraHosts = builtins.readFile ../../network/lan-hosts;
 
+  # Resolver so nixos-rebuild can reach cache.nixos.org on first apply (pihole
+  # isn't up yet). mkDefault so hosts like ai can override with their own.
+  networking.nameservers = lib.mkDefault [ "1.1.1.1" "8.8.8.8" ];
+
   time.timeZone = "Europe/Berlin";
 
   # SSH is how you get in. Keys only, no passwords.

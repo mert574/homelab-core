@@ -35,6 +35,11 @@ bash -c "$applier"
 for entry in "${cts[@]}"; do
   name="${entry%%=*}"; vmid="${entry#*=}"
   echo "== $name (CT $vmid) =="
+  # on-demand CTs (playground-debian) may be stopped; skip rather than fail.
+  if ! pct status "$vmid" 2>/dev/null | grep -q running; then
+    echo "  not running, skipping (re-run this once it's up)"
+    continue
+  fi
   pct push "$vmid" "$HOSTS_FILE" /tmp/lan-hosts
   pct exec "$vmid" -- bash -c "$applier"
 done
