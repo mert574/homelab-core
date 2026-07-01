@@ -26,7 +26,7 @@ resource "proxmox_virtual_environment_container" "media" {
 
   disk {
     datastore_id = var.datastore
-    size         = 64 # media fills fast; see DEPLOY.md (storage)
+    size         = 100 # media fills fast; grown from 64 (NVMe pool has headroom)
   }
 
   network_interface {

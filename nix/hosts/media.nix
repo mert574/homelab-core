@@ -47,6 +47,12 @@ in
     enable = true;
     vpnNamespace = "mullvad";
   };
+  # Download files group-writable (664/775) so the *arr apps (same "media" group)
+  # can hardlink them into the library instead of copying. Default is 644, and with
+  # fs.protected_hardlinks=1 a group-read-only file can't be hardlinked by another
+  # user -> Sonarr/Radarr fall back to a full copy (every grab stored twice). 664
+  # gives the media group write, which satisfies protected_hardlinks.
+  systemd.services.qbittorrent.serviceConfig.UMask = "0002";
 
   # Automation on the LAN.
   services.prowlarr.enable = true; # indexers (9696)
