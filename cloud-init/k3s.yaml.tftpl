@@ -10,7 +10,12 @@ users:
 package_update: true
 packages:
   - curl
+  # qemu-guest-agent: the VM enables the agent (tofu/k3s.tf) and cluster/bootstrap/
+  # up.sh fetches the kubeconfig via `qm guest exec`, which needs it. The Debian
+  # genericcloud image doesn't ship it, so install + start it here.
+  - qemu-guest-agent
 runcmd:
+  - [ systemctl, enable, --now, qemu-guest-agent ]
   # Install k3s with its own networking turned off so Cilium can take over.
   # Nodes sit NotReady until Cilium is installed (Layer 3). That is expected.
   - >-
