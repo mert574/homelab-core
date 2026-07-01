@@ -40,6 +40,19 @@ in
   # isn't up yet). mkDefault so hosts like ai can override with their own.
   networking.nameservers = lib.mkDefault [ "1.1.1.1" "8.8.8.8" ];
 
+  # These LXCs have static IPs, so dhcpcd leases nothing and only feeds resolvconf
+  # an empty nameserver set: /etc/resolv.conf ends up with no `nameserver` line and
+  # every lookup fails (this nixpkgs's resolvconf emits name_servers only for the
+  # local-resolver case, never for static networking.nameservers). So skip DHCP and
+  # write resolv.conf statically from networking.nameservers. Defining
+  # environment.etc."resolv.conf" also auto-disables resolvconf (its enable default
+  # is `!(config.environment.etc ? "resolv.conf")`), so nothing clobbers it.
+  networking.useDHCP = false;
+  networking.resolvconf.enable = lib.mkForce false; # something enables it non-default; we own resolv.conf now
+  environment.etc."resolv.conf".text =
+    lib.concatMapStrings (ns: "nameserver ${ns}\n") config.networking.nameservers
+    + "options edns0\n";
+
   # These LXCs are created with ostype "unmanaged", so Proxmox does NOT inject a
   # network config and the default (manageNetwork=false, systemd-networkd waits
   # for Proxmox) leaves them with no IP. So NixOS owns networking: each host sets
