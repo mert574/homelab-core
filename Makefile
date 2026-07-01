@@ -19,7 +19,7 @@ tofu:
 
 nix:
 	@echo "== nix flake check =="
-	@command -v nix >/dev/null 2>&1 && nix flake check ./nix || echo "  (nix not installed; skipping)"
+	@command -v nix >/dev/null 2>&1 && nix flake check . || echo "  (nix not installed; skipping)"
 
 k8s:
 	@echo "== kubeconform =="

@@ -165,7 +165,7 @@ See `secrets/` for the SOPS layout.
 ## Validation
 
 `make validate` runs the checks (each skips if its tool is missing): `tofu
-validate` + `fmt`, `nix flake check ./nix`, `kubeconform` against the cluster
+validate` + `fmt`, `nix flake check`, `kubeconform` against the cluster
 manifests (with the CRD catalog), `shellcheck`, and `actionlint`. CI runs the
 full set on every push (`.github/workflows/validate.yml`), including the Nix on a
 runner that has `nix`.

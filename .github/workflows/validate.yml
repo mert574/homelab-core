@@ -33,7 +33,7 @@ jobs:
           touch secrets/homelab.enc.env secrets/mullvad.wg.enc \
                 secrets/digarr.env.enc secrets/cloudflared.creds.enc
           git add -A
-      - run: nix flake check ./nix --no-build
+      - run: nix flake check . --no-build
 
   # Real build smoke test: assemble every host's system closure on a native
   # x86_64-linux runner (the mac can't, it's aarch64-darwin). Catches build
@@ -69,13 +69,13 @@ jobs:
       - name: build all host toplevels
         run: |
           nix build --no-link --print-out-paths \
-            ./nix#nixosConfigurations.admin.config.system.build.toplevel \
-            ./nix#nixosConfigurations.ai.config.system.build.toplevel \
-            ./nix#nixosConfigurations.playground.config.system.build.toplevel \
-            ./nix#nixosConfigurations.postgres.config.system.build.toplevel \
-            ./nix#nixosConfigurations.cloudflared.config.system.build.toplevel \
-            ./nix#nixosConfigurations.garage.config.system.build.toplevel \
-            ./nix#nixosConfigurations.media.config.system.build.toplevel
+            .#nixosConfigurations.admin.config.system.build.toplevel \
+            .#nixosConfigurations.ai.config.system.build.toplevel \
+            .#nixosConfigurations.playground.config.system.build.toplevel \
+            .#nixosConfigurations.postgres.config.system.build.toplevel \
+            .#nixosConfigurations.cloudflared.config.system.build.toplevel \
+            .#nixosConfigurations.garage.config.system.build.toplevel \
+            .#nixosConfigurations.media.config.system.build.toplevel
 
   # Push the built host closures to the LAN Garage Nix cache so a re-apply pulls
   # them prebuilt. Runs on the in-cluster self-hosted runner, which reaches Garage
@@ -115,13 +115,13 @@ jobs:
           trap 'rm -f "$keyfile"' EXIT
           store="s3://nix-cache?endpoint=http://192.168.178.109:3900&region=eu-central&secret-key=$keyfile"
           nix copy --to "$store" \
-            ./nix#nixosConfigurations.admin.config.system.build.toplevel \
-            ./nix#nixosConfigurations.ai.config.system.build.toplevel \
-            ./nix#nixosConfigurations.playground.config.system.build.toplevel \
-            ./nix#nixosConfigurations.postgres.config.system.build.toplevel \
-            ./nix#nixosConfigurations.cloudflared.config.system.build.toplevel \
-            ./nix#nixosConfigurations.garage.config.system.build.toplevel \
-            ./nix#nixosConfigurations.media.config.system.build.toplevel
+            .#nixosConfigurations.admin.config.system.build.toplevel \
+            .#nixosConfigurations.ai.config.system.build.toplevel \
+            .#nixosConfigurations.playground.config.system.build.toplevel \
+            .#nixosConfigurations.postgres.config.system.build.toplevel \
+            .#nixosConfigurations.cloudflared.config.system.build.toplevel \
+            .#nixosConfigurations.garage.config.system.build.toplevel \
+            .#nixosConfigurations.media.config.system.build.toplevel
 
   k8s:
     runs-on: ubuntu-latest

@@ -143,7 +143,7 @@ ensure_templates() {
     # proxmox-lxc module, which exposes system.build.tarball, so build that
     # straight from the flake (admin has no sops deps, so it evals cleanly).
     nix build --extra-experimental-features 'nix-command flakes' \
-      "$REPO_ROOT/nix#nixosConfigurations.admin.config.system.build.tarball" \
+      "$REPO_ROOT#nixosConfigurations.admin.config.system.build.tarball" \
       -o /tmp/nixos-lxc-result
     local out
     out="$(find -L /tmp/nixos-lxc-result -name '*.tar.xz' | head -1)"

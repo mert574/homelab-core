@@ -28,15 +28,15 @@
     {
       nixosConfigurations = {
         # on-demand shells
-        admin      = mkHost [ ./hosts/admin.nix ];
-        ai         = mkHost [ ./hosts/ai.nix ];
-        playground = mkHost [ ./hosts/playground.nix ];
+        admin      = mkHost [ ./nix/hosts/admin.nix ];
+        ai         = mkHost [ ./nix/hosts/ai.nix ];
+        playground = mkHost [ ./nix/hosts/playground.nix ];
 
         # always-on services (secrets via sops-nix)
-        postgres    = mkHost [ ./hosts/postgres.nix sops-nix.nixosModules.sops ];
-        cloudflared = mkHost [ ./hosts/cloudflared.nix sops-nix.nixosModules.sops ];
-        garage      = mkHost [ ./hosts/garage.nix sops-nix.nixosModules.sops ];
-        media       = mkHost [ ./hosts/media.nix sops-nix.nixosModules.sops vpn-confinement.nixosModules.default ];
+        postgres    = mkHost [ ./nix/hosts/postgres.nix sops-nix.nixosModules.sops ];
+        cloudflared = mkHost [ ./nix/hosts/cloudflared.nix sops-nix.nixosModules.sops ];
+        garage      = mkHost [ ./nix/hosts/garage.nix sops-nix.nixosModules.sops ];
+        media       = mkHost [ ./nix/hosts/media.nix sops-nix.nixosModules.sops vpn-confinement.nixosModules.default ];
       };
     };
 }
