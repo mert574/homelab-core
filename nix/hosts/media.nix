@@ -17,6 +17,10 @@ in
   systemd.tmpfiles.rules = [
     "d ${mediaDir} 2775 root media - -"
     "d ${downloadDir} 2775 root media - -"
+    # The iGPU is passed into the LXC (tofu/media.tf dev0) owned root:root, so the
+    # jellyfin user (in group render) can't open it and HW transcoding fails with
+    # "no valid media source". Hand the render node to the render group on every boot.
+    "z /dev/dri/renderD128 0660 root render - -"
   ];
 
   # Mullvad WireGuard namespace. The whole wg-quick config (incl. the private key)
@@ -51,14 +55,17 @@ in
   services.bazarr = { enable = true; group = "media"; }; # subtitles (6767)
   services.seerr.enable = true; # jellyseerr: requests + discovery front-end (5055)
 
-  # Media server (web UI + Jellyfin apps), with Intel QuickSync (UHD 630) for
-  # hardware transcoding. The iGPU is passed into the LXC in tofu/media.tf.
+  # Media server (web UI + Jellyfin apps) with Intel iGPU (UHD 630) hardware
+  # transcoding. The iGPU is passed into the LXC in tofu/media.tf. NOTE: use VAAPI,
+  # not QSV — the QSV/MFX (oneVPL) path fails to create a session in this LXC
+  # (Error creating a MFX session: -9), while VAAPI via the iHD driver works. Set
+  # in Jellyfin: Playback -> Hardware acceleration = VAAPI, device /dev/dri/renderD128.
   services.jellyfin = { enable = true; group = "media"; };
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
-      intel-media-driver # iHD VAAPI driver (Gen9+)
-      vpl-gpu-rt         # oneVPL runtime for QSV
+      intel-media-driver # iHD VAAPI driver (Gen9+) — the working path here
+      vpl-gpu-rt         # oneVPL runtime for QSV (kept, but QSV/MFX is broken in-LXC)
     ];
   };
 
@@ -69,7 +76,7 @@ in
     openFirewall = true;
     settings = {
       media_dir = [ mediaDir ];
-      friendly_name = "Home Media";
+      friendly_name = "Mertflix";
       inotify = "yes";
     };
   };
