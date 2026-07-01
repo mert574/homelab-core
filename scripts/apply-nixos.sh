@@ -28,7 +28,7 @@ tar czf "$archive" -C "$REPO_ROOT" --exclude=.git --exclude=tofu/.terraform .
 cx() {
   local id="$1"; shift
   pct exec "$id" -- /run/current-system/sw/bin/bash -c \
-    "export PATH=/run/current-system/sw/bin:/run/wrappers/bin:\$PATH; $*"
+    "cd /; export PATH=/run/current-system/sw/bin:/run/wrappers/bin:\$PATH; $*"
 }
 
 apply() {
@@ -47,11 +47,16 @@ apply() {
   local ip gw
   ip="$(pct config "$vmid" | grep -oP 'net0:.*ip=\K[0-9./]+' || true)"
   gw="$(pct config "$vmid" | grep -oP 'net0:.*gw=\K[0-9.]+' || true)"
-  if [ -n "$ip" ] && ! cx "$vmid" "ip -4 addr show dev eth0" 2>/dev/null | grep -q "${ip%/*}"; then
-    cx "$vmid" "ip addr add $ip dev eth0" 2>/dev/null || true
-    cx "$vmid" "ip link set eth0 up" 2>/dev/null || true
-    [ -n "$gw" ] && cx "$vmid" "ip route add default via $gw" 2>/dev/null || true
+  if [ -n "$ip" ]; then
+    cx "$vmid" "ip addr replace $ip dev eth0; ip link set eth0 up" 2>/dev/null || true
+    [ -n "$gw" ] && cx "$vmid" "ip route replace default via $gw" 2>/dev/null || true
     cx "$vmid" "rm -f /etc/resolv.conf; echo nameserver 1.1.1.1 > /etc/resolv.conf" 2>/dev/null || true
+    # wait until DNS actually resolves before the rebuild fetches flake inputs,
+    # else it races the network coming up and fails with "could not resolve host".
+    for _ in $(seq 1 15); do
+      cx "$vmid" "getent hosts github.com >/dev/null 2>&1" && break
+      sleep 2
+    done
   fi
   cx "$vmid" "install -d -m 700 /var/lib/sops-nix"
   pct push "$vmid" "$AGE_KEY" /var/lib/sops-nix/key.txt --perms 600
