@@ -12,6 +12,8 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CT=101
+# shellcheck source=/dev/null
+[ -n "${PIHOLE_WEBPASSWORD:-}" ] || . "$REPO_ROOT/scripts/load-env.sh"
 : "${PIHOLE_WEBPASSWORD:?set PIHOLE_WEBPASSWORD (from the sops env)}"
 
 pct status "$CT" | grep -q running || { pct start "$CT"; sleep 5; }

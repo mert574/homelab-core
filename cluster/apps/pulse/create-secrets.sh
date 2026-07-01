@@ -6,10 +6,11 @@
 #   set -a; eval "$(sops -d secrets/homelab.enc.env)"; set +a   # for GIT_HTTP_TOKEN
 #   cluster/apps/pulse/create-secrets.sh
 set -euo pipefail
-: "${GIT_HTTP_TOKEN:?}" "${SOPS_AGE_KEY_FILE:?}"
-
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$HERE/../../.." && pwd)"
+# shellcheck source=/dev/null
+[ -n "${GIT_HTTP_TOKEN:-}" ] || . "$REPO_ROOT/scripts/load-env.sh"
+: "${GIT_HTTP_TOKEN:?}" "${SOPS_AGE_KEY_FILE:?}"
 
 kubectl create namespace pulse --dry-run=client -o yaml | kubectl apply -f -
 

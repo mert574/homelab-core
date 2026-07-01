@@ -7,6 +7,8 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$HERE/../.." && pwd)"
+# shellcheck source=/dev/null
+[ -n "${GIT_HTTP_TOKEN:-}" ] || . "$REPO_ROOT/scripts/load-env.sh"
 K3S_VMID=104
 K3S_IP=192.168.178.104
 export KUBECONFIG=/root/.kube/config

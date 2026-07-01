@@ -63,7 +63,8 @@ apply() {
   pct push "$vmid" "$archive" /root/homelab-core.tgz
   cx "$vmid" "rm -rf /root/homelab-core && mkdir -p /root/homelab-core && tar xzf /root/homelab-core.tgz -C /root/homelab-core"
   # the new nixos-rebuild rejects --extra-experimental-features; enable via NIX_CONFIG.
-  cx "$vmid" "NIX_CONFIG='experimental-features = nix-command flakes' nixos-rebuild switch --flake /root/homelab-core/nix#$name"
+  # --print-build-logs so the build isn't silent.
+  cx "$vmid" "NIX_CONFIG='experimental-features = nix-command flakes' nixos-rebuild switch --flake /root/homelab-core/nix#$name --print-build-logs"
   # put on-demand guests back to sleep
   [ "$was_stopped" = 1 ] && pct stop "$vmid" || true
 }
