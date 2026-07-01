@@ -3,6 +3,7 @@
 { config, pkgs, lib, ... }:
 {
   imports = [ ../modules/base.nix ../modules/sops.nix ];
+  networking.interfaces.eth0.ipv4.addresses = [{ address = "192.168.178.102"; prefixLength = 24; }];
 
   # role passwords, decrypted from the env to files postgres can read.
   sops.secrets."PULSE_DB_PASSWORD".owner = "postgres";

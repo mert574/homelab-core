@@ -34,6 +34,19 @@ apply() {
     pct start "$vmid"
     sleep 15
   fi
+  # These CTs are ostype "unmanaged", so Proxmox doesn't apply the IP inside and
+  # the NixOS config that sets it isn't active until the first rebuild - which
+  # needs the network to fetch. Break the chicken-and-egg: read the IP/gw Proxmox
+  # already knows (net0) and set it temporarily so nixos-rebuild can reach the net.
+  local ip gw
+  ip="$(pct config "$vmid" | grep -oP 'net0:.*ip=\K[0-9./]+' || true)"
+  gw="$(pct config "$vmid" | grep -oP 'net0:.*gw=\K[0-9.]+' || true)"
+  if [ -n "$ip" ] && ! pct exec "$vmid" -- ip -4 addr show dev eth0 | grep -q "${ip%/*}"; then
+    pct exec "$vmid" -- ip addr add "$ip" dev eth0 2>/dev/null || true
+    pct exec "$vmid" -- ip link set eth0 up 2>/dev/null || true
+    [ -n "$gw" ] && pct exec "$vmid" -- ip route add default via "$gw" 2>/dev/null || true
+    pct exec "$vmid" -- bash -c 'echo "nameserver 1.1.1.1" > /etc/resolv.conf' 2>/dev/null || true
+  fi
   pct exec "$vmid" -- install -d -m 700 /var/lib/sops-nix
   pct push "$vmid" "$AGE_KEY" /var/lib/sops-nix/key.txt --perms 600
   pct push "$vmid" "$archive" /root/homelab-core.tgz

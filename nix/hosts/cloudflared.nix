@@ -5,6 +5,7 @@
 { config, pkgs, lib, ... }:
 {
   imports = [ ../modules/base.nix ../modules/sops.nix ];
+  networking.interfaces.eth0.ipv4.addresses = [{ address = "192.168.178.103"; prefixLength = 24; }];
 
   # Tunnel credentials JSON from `cloudflared tunnel create` (see DEPLOY.md).
   sops.secrets."cloudflared-creds" = {

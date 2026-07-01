@@ -40,6 +40,13 @@ in
   # isn't up yet). mkDefault so hosts like ai can override with their own.
   networking.nameservers = lib.mkDefault [ "1.1.1.1" "8.8.8.8" ];
 
+  # These LXCs are created with ostype "unmanaged", so Proxmox does NOT inject a
+  # network config and the default (manageNetwork=false, systemd-networkd waits
+  # for Proxmox) leaves them with no IP. So NixOS owns networking: each host sets
+  # its own networking.interfaces.eth0 address; the gateway is shared here.
+  proxmoxLXC.manageNetwork = true;
+  networking.defaultGateway = lib.mkDefault "192.168.178.1";
+
   time.timeZone = "Europe/Berlin";
 
   # Ship terminfo for all terminal emulators (incl. xterm-ghostty), so shelling

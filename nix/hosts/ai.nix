@@ -3,6 +3,8 @@
 { pkgs, unstable, lib, ... }:
 {
   imports = [ ../modules/base.nix ];
+  networking.interfaces.eth0.ipv4.addresses = [{ address = "10.10.10.10"; prefixLength = 24; }];
+  networking.defaultGateway = "10.10.10.1";
 
   # LAN-isolated, so Pi-hole is unreachable; use public DNS.
   networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];

@@ -4,6 +4,7 @@
 { config, pkgs, lib, ... }:
 {
   imports = [ ../modules/base.nix ../modules/sops.nix ];
+  networking.interfaces.eth0.ipv4.addresses = [{ address = "192.168.178.109"; prefixLength = 24; }];
 
   sops.secrets."GARAGE_RPC_SECRET" = { };
   sops.secrets."GARAGE_ADMIN_TOKEN" = { };
