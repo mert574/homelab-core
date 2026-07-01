@@ -5,9 +5,13 @@
   imports = [ ../modules/base.nix ../modules/sops.nix ];
   networking.interfaces.eth0.ipv4.addresses = [{ address = "192.168.178.102"; prefixLength = 24; }];
 
-  # role passwords, decrypted from the env to files postgres can read.
-  sops.secrets."PULSE_DB_PASSWORD".owner = "postgres";
-  sops.secrets."DIGARR_DB_PASSWORD".owner = "postgres";
+  # The homelab secrets live in one dotenv file. sops-nix only extracts single
+  # keys from yaml/json — for dotenv (and binary/ini) it writes the *entire*
+  # decrypted file to the secret path, ignoring the key (see decryptSecret in
+  # sops-install-secrets). So a per-key `sops.secrets."PULSE_DB_PASSWORD"` would
+  # hand postgres the whole env (pve root password, ssh keys, every app secret).
+  # Instead keep the file root-only and pull the two role passwords out below.
+  sops.secrets."homelab-env" = { };  # -> /run/secrets/homelab-env, root:root 0400
 
   services.postgresql = {
     enable = true;
@@ -37,20 +41,34 @@
 
   networking.firewall.allowedTCPPorts = [ 5432 ];
 
-  # ensureUsers can't set a password; set the pulse role's from the sops secret.
+  # ensureUsers can't set a password; set the pulse/digarr role passwords from
+  # the sops env. Runs as root (to read the root-only secret) and shells out to
+  # psql via runuser so local peer auth still sees the postgres user. The value
+  # is passed as a psql variable and interpolated with :'pw', which quotes and
+  # escapes it safely — so a password with quotes/backslashes can't break out of
+  # the statement (the old '$(cat …)' form did, hence the boot failure).
   systemd.services.postgres-set-password = {
     description = "set role passwords from the sops secrets";
     after = [ "postgresql.service" ];
     requires = [ "postgresql.service" ];
     wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      Type = "oneshot";
-      User = "postgres";
-    };
+    serviceConfig.Type = "oneshot";
     script = ''
+      envfile=${config.sops.secrets."homelab-env".path}
       psql=${config.services.postgresql.package}/bin/psql
-      $psql -tAc "ALTER ROLE pulse WITH PASSWORD '$(cat ${config.sops.secrets."PULSE_DB_PASSWORD".path})';"
-      $psql -tAc "ALTER ROLE digarr WITH PASSWORD '$(cat ${config.sops.secrets."DIGARR_DB_PASSWORD".path})';"
+      runuser=${pkgs.util-linux}/bin/runuser
+
+      set_pw() {
+        local role="$1" var="$2" line val
+        line="$(${pkgs.gnugrep}/bin/grep -m1 "^$var=" "$envfile")" \
+          || { echo "postgres-set-password: $var not found in env" >&2; exit 1; }
+        val="''${line#$var=}"
+        val="''${val%\"}"; val="''${val#\"}"   # strip the dotenv KEY="value" quotes
+        printf "ALTER ROLE %s WITH PASSWORD :'pw';\n" "$role" \
+          | "$runuser" -u postgres -- "$psql" -v pw="$val" -f -
+      }
+      set_pw pulse  PULSE_DB_PASSWORD
+      set_pw digarr DIGARR_DB_PASSWORD
     '';
   };
 }
