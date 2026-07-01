@@ -6,16 +6,20 @@
   imports = [ ../modules/base.nix ../modules/sops.nix ];
   networking.interfaces.eth0.ipv4.addresses = [{ address = "192.168.178.109"; prefixLength = 24; }];
 
-  sops.secrets."GARAGE_RPC_SECRET" = { };
-  sops.secrets."GARAGE_ADMIN_TOKEN" = { };
-  # S3 key the CI push job uses to write the Nix cache. Imported (not created) so
-  # it's deterministic and matches the same value held as a GitHub secret.
-  sops.secrets."NIX_CACHE_S3_ACCESS_KEY" = { };
-  sops.secrets."NIX_CACHE_S3_SECRET_KEY" = { };
+  # sops-nix can't extract individual keys from a dotenv file — it writes the
+  # *entire* decrypted env to every secret path (see postgres.nix). So keep the
+  # env as one root-only secret and pull garage's four values out into an
+  # EnvironmentFile below (garage reads GARAGE_RPC_SECRET / GARAGE_ADMIN_TOKEN
+  # from the environment; the CI S3 key/secret feed garage-setup.sh).
+  sops.secrets."homelab-env" = { };  # -> /run/secrets/homelab-env, root:root 0400
 
   services.garage = {
     enable = true;
     package = pkgs.garage;
+    # GARAGE_RPC_SECRET / GARAGE_ADMIN_TOKEN come from here (extracted from the
+    # sops env by garage-secrets.service below). systemd reads it as root, and
+    # the `garage` CLI wrapper sources it too, so admin commands get the secret.
+    environmentFile = "/run/garage/env";
     settings = {
       metadata_dir = "/var/lib/garage/meta";
       data_dir = "/var/lib/garage/data";
@@ -24,7 +28,6 @@
 
       rpc_bind_addr = "[::]:3901";
       rpc_public_addr = "127.0.0.1:3901";
-      rpc_secret_file = config.sops.secrets."GARAGE_RPC_SECRET".path;
 
       # S3 API, for apps to push assets
       s3_api = {
@@ -35,34 +38,65 @@
       # Static website serving. Each site is its own bucket whose global alias is
       # the site's domain (bucket `app.pulsepager.com`, bucket `othersite.io`, ...),
       # so any number of unrelated domains are served by Host match. cloudflared
-      # points each hostname here. (root_domain could be added for quick
-      # *.subdomain hosting, but it's not needed for arbitrary domains.)
+      # points each hostname here.
       s3_web = {
         bind_addr = "[::]:3902";
+        # garage requires root_domain whenever s3_web is set. Buckets are still
+        # matched by their global alias (the full domain) regardless of this; it
+        # just additionally enables <bucket>.web.garage.internal style hosting.
+        root_domain = ".web.garage.internal";
         index = "index.html";
       };
 
       admin = {
         api_bind_addr = "127.0.0.1:3903";
-        admin_token_file = config.sops.secrets."GARAGE_ADMIN_TOKEN".path;
+        # token supplied via GARAGE_ADMIN_TOKEN in the EnvironmentFile above
       };
     };
   };
 
   networking.firewall.allowedTCPPorts = [ 3900 3902 ]; # S3 + web
 
+  # Pull garage's four values out of the whole-env sops secret into a small
+  # root-only EnvironmentFile, stripping the dotenv KEY="value" quotes so both
+  # systemd and the `garage` CLI get clean values. Runs before garage starts.
+  systemd.services.garage-secrets = {
+    description = "extract garage's secrets from the sops env into an EnvironmentFile";
+    before = [ "garage.service" "garage-setup.service" ];
+    requiredBy = [ "garage.service" "garage-setup.service" ];
+    path = [ pkgs.coreutils ];
+    serviceConfig = { Type = "oneshot"; RemainAfterExit = true; };
+    script = ''
+      envfile=${config.sops.secrets."homelab-env".path}
+      install -d -m 0755 /run/garage
+      umask 077
+      : > /run/garage/env.tmp
+      while IFS= read -r line; do
+        case "$line" in
+          GARAGE_RPC_SECRET=*|GARAGE_ADMIN_TOKEN=*|NIX_CACHE_S3_ACCESS_KEY=*|NIX_CACHE_S3_SECRET_KEY=*)
+            key=''${line%%=*}; val=''${line#*=}
+            val=''${val%\"}; val=''${val#\"}   # strip the dotenv KEY="value" quotes
+            printf '%s=%s\n' "$key" "$val" >> /run/garage/env.tmp ;;
+        esac
+      done < "$envfile"
+      chmod 0400 /run/garage/env.tmp
+      mv /run/garage/env.tmp /run/garage/env
+    '';
+  };
+
   # Set up Garage in code instead of by hand: layout + the nix-cache bucket + the
   # CI write key, via scripts/garage-setup.sh (idempotent, re-runs safely on every
-  # boot). The script reads its secrets from the sops-nix files below.
+  # boot). Secrets come from the EnvironmentFile (garage-secrets.service).
   systemd.services.garage-setup = {
     description = "Set up Garage layout, buckets and keys";
-    after = [ "garage.service" ];
-    requires = [ "garage.service" ];
+    after = [ "garage.service" "garage-secrets.service" ];
+    requires = [ "garage.service" "garage-secrets.service" ];
     wantedBy = [ "multi-user.target" ];
     path = [ pkgs.garage pkgs.gnugrep pkgs.gawk pkgs.coreutils ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
+      EnvironmentFile = "/run/garage/env";
       ExecStart = "${pkgs.bash}/bin/bash ${../../scripts/garage-setup.sh}";
     };
   };
