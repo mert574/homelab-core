@@ -18,20 +18,15 @@ in
 
   # flakes, so `nixos-rebuild --flake` works without the extra flag.
   #
-  # The LAN Garage cache is an extra substituter: CI builds and signs each host
-  # closure and pushes it there (see DEPLOY.md), so a re-apply pulls it prebuilt
-  # instead of rebuilding on every box. fallback + a short connect-timeout mean a
-  # missing or unreachable cache (first boot, before Garage is up) just falls back
-  # to cache.nixos.org and local builds, so it never blocks a rebuild.
+  # The LAN Garage cache (an extra substituter) is left out until Garage is up and
+  # we have a real signing key. First bring-up builds locally, which it would do
+  # anyway. To turn it on later: generate a key with
+  # `nix-store --generate-binary-cache-key`, then add back
+  #   substituters = lib.mkAfter [ "http://nix-cache.garage.lan:3902" ];
+  #   trusted-public-keys = lib.mkAfter [ "nix-cache:<the-real-base64-public-key>" ];
+  #   fallback = true; connect-timeout = 5;
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
-    substituters = lib.mkAfter [ "http://nix-cache.garage.lan:3902" ];
-    trusted-public-keys = lib.mkAfter [
-      # TODO: the cache public key from `nix-store --generate-binary-cache-key`
-      "nix-cache:REPLACE-base64-public-key"
-    ];
-    fallback = true;
-    connect-timeout = 5;
   };
 
   # Every host resolves the LAN names from the one central file (the same file is
@@ -54,8 +49,8 @@ in
     extraGroups = [ "wheel" ];
     shell = pkgs.zsh;
     openssh.authorizedKeys.keys = [
-      # TODO: your public key (same one used for the other guests)
-      "ssh-ed25519 AAAA...REPLACE you@laptop"
+      # the dedicated homelab key (same one root trusts, baked into the install)
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHHe/12l40dJxmMJDDQm9VIHfuRUheLvrDnjpm0pB5aU homelab-root@mertyildiz"
     ];
   };
   security.sudo.wheelNeedsPassword = false;

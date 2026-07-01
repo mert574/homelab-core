@@ -11,10 +11,18 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 AGE_KEY="${AGE_KEY:-/root/.config/sops/age/keys.txt}"
 
 # host = container vmid (NixOS LXCs only; not k3s (a VM) or playground-debian)
+#
+# cloudflared and media are left out by default: they read sops files that aren't
+# in the repo yet (secrets/cloudflared.creds.enc, mullvad.wg.enc, digarr.env.enc)
+# and need external creds (Cloudflare tunnel, Mullvad). A missing sopsFile fails
+# the nixos-rebuild at eval, so we skip them until those are set up. Once they are,
+# run with HOMELAB_ALL_HOSTS=1 to include them.
 hosts=(
-  "postgres=102" "cloudflared=103" "admin=105" "ai=106"
-  "playground=107" "garage=109" "media=110"
+  "postgres=102" "admin=105" "ai=106" "playground=107" "garage=109"
 )
+if [ "${HOMELAB_ALL_HOSTS:-0}" = "1" ]; then
+  hosts+=( "cloudflared=103" "media=110" )
+fi
 
 archive=/tmp/homelab-core.tgz
 tar czf "$archive" -C "$REPO_ROOT" --exclude=.git --exclude=tofu/.terraform .

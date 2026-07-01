@@ -10,8 +10,8 @@
 #   sops secrets/homelab.enc.env
 
 keys:
-  # TODO: replace with the real age public key from age-keygen
-  - &master age1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsj3xxxx
+  # master age public key (private key lives on the HOMELAB usb, off the repo)
+  - &master age1tnushj7hwd33u973hxfj463wpd5qfkw8qzr0uqe29n03yz42l4xqt80vst
 
 creation_rules:
   # every encrypted secret file under secrets/ -> the master key

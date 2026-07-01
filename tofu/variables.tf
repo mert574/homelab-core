@@ -5,16 +5,28 @@ variable "pve_endpoint" {
   default     = "https://192.168.178.100:8006/"
 }
 
-variable "pve_api_token" {
+variable "pve_username" {
   type        = string
-  description = "Proxmox API token in the form USER@REALM!TOKENID=SECRET"
+  description = "Proxmox login, realm included. root@pam so we can use the install root password."
+  default     = "root@pam"
+}
+
+variable "pve_password" {
+  type        = string
+  description = "Password for pve_username. Comes from TF_VAR_pve_password (the baked root password)."
   sensitive   = true
+}
+
+variable "pve_ssh_private_key_file" {
+  type        = string
+  description = "Key the provider uses to SSH to the node (root to itself). bootstrap.sh generates it."
+  default     = "/root/.ssh/id_ed25519_pve"
 }
 
 variable "pve_node" {
   type        = string
-  description = "Proxmox node name (hostname of the box)"
-  default     = "pve"
+  description = "Proxmox node name (the host's short hostname). fqdn is proxmox.lan, so: proxmox."
+  default     = "proxmox"
 }
 
 variable "datastore" {

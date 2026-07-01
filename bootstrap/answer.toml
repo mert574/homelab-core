@@ -1,0 +1,59 @@
+# Unattended Proxmox VE install answer file (Proxmox 8.2+ / built against 9.2).
+#
+# This is a TEMPLATE. It has NO secrets. `build-iso.sh` copies it, fills in the
+# root password hash, and bakes that copy into the ISO. Do not put a real
+# password here and do not commit a filled-in copy.
+#
+# Inspect real hardware property values with:
+#   proxmox-auto-install-assistant device-info -t network
+#   proxmox-auto-install-assistant device-info -t disk
+# and dry-run the filters with `device-match network|disk ...`.
+
+[global]
+keyboard = "en-us"          # console only; access is over SSH. change to "de" if you prefer QWERTZ
+country  = "de"
+fqdn     = "proxmox.lan"     # matches network/lan-hosts (192.168.178.100)
+mailto   = "root@proxmox.lan"
+timezone = "Europe/Berlin"
+
+# Filled in by build-iso.sh (openssl passwd -6). Never a plaintext password.
+root-password-hashed = "__ROOT_PASSWORD_HASHED__"
+
+# The dedicated homelab key (see bootstrap/README.md). SSH is the real way in.
+root-ssh-keys = [
+  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHHe/12l40dJxmMJDDQm9VIHfuRUheLvrDnjpm0pB5aU homelab-root@mertyildiz",
+]
+
+# Stop at the error screen instead of rebooting into a half-install, so a wrong
+# pick is recoverable.
+reboot-on-error = false
+
+[network]
+source  = "from-answer"
+cidr    = "192.168.178.100/24"
+gateway = "192.168.178.1"
+dns     = "192.168.178.1"
+# Match the first wired NIC. Ethernet names start with "e" (eno1, enp0s31f6, ...);
+# wifi starts with "w", so this never grabs the Wi-Fi card. If the box has more
+# than one wired NIC, pin the exact one by MAC instead: filter.ID_NET_NAME_MAC.
+filter.ID_NET_NAME = "e*"
+
+[disk-setup]
+# ext4 gives the default LVM layout with an LVM-thin data pool (what DEPLOY.md wants).
+filesystem = "ext4"
+# Target the internal NVMe by device name. NVMe drives often don't set ID_BUS, so
+# a filter on that matches nothing; the kernel name is reliable. The install USB
+# is sdX/sr0, never nvme0n1, so this can't hit the install medium. If the box has
+# more than one NVMe, or it isn't nvme0n1, adjust here.
+disk-list = ["nvme0n1"]
+
+[disk-setup.lvm]
+# Cap swap and leave the rest of the disk for the thin data pool (guests/images).
+swapsize = 8
+maxroot  = 40
+
+[first-boot]
+# Handoff script baked into the ISO. Runs after the network is up so it can read
+# the age key off the USB, install tooling, and run bootstrap.sh unattended.
+source   = "from-iso"
+ordering = "network-online"

@@ -14,13 +14,15 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
 
 ## 1. Host install (Layer 0-1)
 
-- [ ] Build the unattended Proxmox USB (answer.toml + first-boot) - see `bootstrap/`
+- [ ] Build the unattended Proxmox USB (`bootstrap/build-iso.sh`) - see `bootstrap/`
 - [ ] Host pinned to `192.168.178.100/24`, filesystem **LVM-thin**
-- [ ] Create the Proxmox **API token** -> `pve_api_token`
-- [ ] Download templates on the node: NixOS LXC (`var.nixos_ct_template`), Debian LXC
-      (`pveam ... debian-13-standard`), and the Debian cloud image is pulled by tofu
-- [ ] `bootstrap/host-network/install.sh` (vmbr1 isolation bridge for the ai box)
-- [ ] `bootstrap/host-network/wifi-setup.sh` with `WIFI_IFACE` set to the real device
+- [ ] No API token step: tofu logs in as `root@pam` with the baked install password
+      (`providers.tf`), so this is hands-off
+- [ ] Templates are fetched by `bootstrap.sh` (`ensure_templates`): Debian LXC via
+      `pveam`, NixOS LXC built with nixos-generators. Debian cloud image is pulled by tofu
+- [ ] `bootstrap/host-network/install.sh` runs from the bootstrap (vmbr1 for the ai box)
+- [ ] `bootstrap/host-network/wifi-setup.sh` with `WIFI_IFACE` set - only if you want the
+      Wi-Fi fallback uplink (not run by the bootstrap)
 - [ ] (optional) host swap + `vm.swappiness=10` buffer
 
 ## 2. Secrets
@@ -34,9 +36,11 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
 
 ## 3. Guests (Layer 2, tofu)
 
-- [ ] Set the real **SSH public key** in `nix/modules/base.nix` and `terraform.tfvars`
-- [ ] `cp tofu/terraform.tfvars.example tofu/terraform.tfvars`, fill token/password/key
-- [ ] `tofu -chdir=tofu init && tofu -chdir=tofu apply`
+- [ ] Runs from `bootstrap.sh` (tofu init/apply). No `terraform.tfvars`: the creds come
+      from the sops env as `TF_VAR_*` (`pve_password`, `ct_root_password`, `ssh_public_key`)
+- [ ] SSH key is already set in `nix/modules/base.nix` (the homelab key)
+- [ ] `apply-nixos.sh` skips `cloudflared` + `media` by default (they need Layer-3 creds);
+      run with `HOMELAB_ALL_HOSTS=1` once those secret files exist
 
 ## 4. NixOS hosts
 

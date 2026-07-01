@@ -7,7 +7,9 @@
 # LAN is 192.168.178.0/24 (Fritz!Box). Host is 192.168.178.100.
 # pve_endpoint, lan_gateway, and pihole_ip default to the right values already.
 
-pve_api_token = "tofu@pve!homelab=00000000-0000-0000-0000-000000000000"
+# Auth is root@pam with the install root password (no API token to create).
+# In the real bootstrap these come from the sops env as TF_VAR_*, not this file.
+pve_password = "the-root-password"
 
 ssh_public_key   = "ssh-ed25519 AAAA... you@laptop"
 ct_root_password = "change-me"
