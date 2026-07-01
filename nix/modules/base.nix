@@ -22,7 +22,7 @@ in
   # we have a real signing key. First bring-up builds locally, which it would do
   # anyway. To turn it on later: generate a key with
   # `nix-store --generate-binary-cache-key`, then add back
-  #   substituters = lib.mkAfter [ "http://nix-cache.garage.lan:3902" ];
+  #   substituters = lib.mkAfter [ "http://nix-cache.garage.internal:3902" ];
   #   trusted-public-keys = lib.mkAfter [ "nix-cache:<the-real-base64-public-key>" ];
   #   fallback = true; connect-timeout = 5;
   nix.settings = {
@@ -31,7 +31,7 @@ in
 
   # Every host resolves the LAN names from the one central file (the same file is
   # injected into the non-NixOS machines by scripts/inject-hosts.sh), so
-  # nix-cache.garage.lan and the rest work without a DNS server. The ai box is on
+  # nix-cache.garage.internal and the rest work without a DNS server. The ai box is on
   # the isolated bridge so those LAN IPs aren't routable there; the cache's
   # fallback + connect-timeout above mean it just builds locally on ai.
   networking.extraHosts = builtins.readFile ../../network/lan-hosts;
@@ -41,6 +41,10 @@ in
   networking.nameservers = lib.mkDefault [ "1.1.1.1" "8.8.8.8" ];
 
   time.timeZone = "Europe/Berlin";
+
+  # Ship terminfo for all terminal emulators (incl. xterm-ghostty), so shelling
+  # in from Ghostty/kitty/etc doesn't spew "unknown terminal" from tput.
+  environment.enableAllTerminfo = true;
 
   # SSH is how you get in. Keys only, no passwords.
   services.openssh = {

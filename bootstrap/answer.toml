@@ -12,8 +12,8 @@
 [global]
 keyboard = "en-us"          # console only; access is over SSH. change to "de" if you prefer QWERTZ
 country  = "de"
-fqdn     = "proxmox.lan"     # matches network/lan-hosts (192.168.178.100)
-mailto   = "root@proxmox.lan"
+fqdn     = "proxmox.internal"     # matches network/lan-hosts (192.168.178.100)
+mailto   = "root@proxmox.internal"
 timezone = "Europe/Berlin"
 
 # Filled in by build-iso.sh (openssl passwd -6). Never a plaintext password.

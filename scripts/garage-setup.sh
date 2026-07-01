@@ -27,7 +27,7 @@ ensure_site() {
   g bucket alias "$1" "$2" >/dev/null 2>&1 || true
   g bucket website --allow "$1" >/dev/null
 }
-ensure_site nix-cache nix-cache.garage.lan
+ensure_site nix-cache nix-cache.garage.internal
 
 # CI write key, imported from sops so it survives rebuilds and matches the GitHub
 # secret the push job uses. Read stays anonymous over the web port.

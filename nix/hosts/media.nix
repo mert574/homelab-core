@@ -89,19 +89,22 @@ in
   # initial creds, LIDARR_API_KEY).
   virtualisation.podman.enable = true;
   virtualisation.oci-containers.backend = "podman";
-  sops.secrets."digarr-env" = {
-    format = "binary";
-    sopsFile = ../../secrets/digarr.env.enc;
-  };
-  virtualisation.oci-containers.containers.digarr = {
-    image = "iuliandita/digarr:stable";
-    ports = [ "3000:3000" ];
-    environment = {
-      AI_PROVIDER = "anthropic";
-      LIDARR_URL = "http://192.168.178.110:8686";
-    };
-    environmentFiles = [ config.sops.secrets."digarr-env".path ];
-  };
+  # digarr is disabled for now: it needs secrets/digarr.env.enc (AI provider key +
+  # a LIDARR_API_KEY that only exists after Lidarr's first run). Re-enable by
+  # creating that sops file and uncommenting the two blocks below.
+  # sops.secrets."digarr-env" = {
+  #   format = "binary";
+  #   sopsFile = ../../secrets/digarr.env.enc;
+  # };
+  # virtualisation.oci-containers.containers.digarr = {
+  #   image = "iuliandita/digarr:stable";
+  #   ports = [ "3000:3000" ];
+  #   environment = {
+  #     AI_PROVIDER = "anthropic";
+  #     LIDARR_URL = "http://192.168.178.110:8686";
+  #   };
+  #   environmentFiles = [ config.sops.secrets."digarr-env".path ];
+  # };
 
   # LazyLibrarian: books/magazines (Readarr is retired). Container.
   virtualisation.oci-containers.containers.lazylibrarian = {

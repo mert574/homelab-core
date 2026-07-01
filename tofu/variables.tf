@@ -25,7 +25,7 @@ variable "pve_ssh_private_key_file" {
 
 variable "pve_node" {
   type        = string
-  description = "Proxmox node name (the host's short hostname). fqdn is proxmox.lan, so: proxmox."
+  description = "Proxmox node name (the host's short hostname). fqdn is proxmox.internal, so: proxmox."
   default     = "proxmox"
 }
 

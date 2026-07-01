@@ -37,6 +37,12 @@ resource "proxmox_virtual_environment_container" "media" {
     path = "/dev/dri/renderD128"
   }
 
+  # /dev/net/tun so WireGuard (the qbittorrent VPN netns) works in the
+  # unprivileged container.
+  device_passthrough {
+    path = "/dev/net/tun"
+  }
+
   initialization {
     hostname = "media"
 

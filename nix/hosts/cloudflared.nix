@@ -15,15 +15,14 @@
   services.cloudflared = {
     enable = true;
     # attr name = the tunnel UUID from `cloudflared tunnel create`
-    tunnels."REPLACE-tunnel-uuid" = {
+    tunnels."c281773f-0119-43ca-b5fb-b09d39230c42" = {
       credentialsFile = config.sops.secrets."cloudflared-creds".path;
       default = "http_status:404";
       ingress = {
-        # Pulse SPA + API via the Cilium Gateway LB IP (from the .200-.220 pool)
-        "app.pulsepager.com" = "http://192.168.178.200:80"; # the pinned Gateway LB IP
-        # user-facing media apps only (they have their own auth). Pick hostnames.
-        "watch.example.com" = "http://192.168.178.110:8096"; # jellyfin
-        "requests.example.com" = "http://192.168.178.110:5055"; # jellyseerr
+        # Everything for pulsepager.com goes to the Cilium Gateway LB; the k3s
+        # HTTPRoute splits /api+/auth to the API and the rest to the SPA.
+        "pulsepager.com" = "http://192.168.178.200:80"; # the pinned Gateway LB IP
+        # Media apps are intentionally NOT exposed here; they stay LAN-only (.internal).
       };
     };
   };

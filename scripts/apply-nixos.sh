@@ -12,17 +12,13 @@ AGE_KEY="${AGE_KEY:-/root/.config/sops/age/keys.txt}"
 
 # host = container vmid (NixOS LXCs only; not k3s (a VM) or playground-debian)
 #
-# cloudflared and media are left out by default: they read sops files that aren't
-# in the repo yet (secrets/cloudflared.creds.enc, mullvad.wg.enc, digarr.env.enc)
-# and need external creds (Cloudflare tunnel, Mullvad). A missing sopsFile fails
-# the nixos-rebuild at eval, so we skip them until those are set up. Once they are,
-# run with HOMELAB_ALL_HOSTS=1 to include them.
+# All NixOS guests. cloudflared and media both have their sops files now
+# (cloudflared.creds.enc, mullvad.wg.enc); digarr inside media is disabled until
+# its env exists (see media.nix).
 hosts=(
-  "postgres=102" "admin=105" "ai=106" "playground=107" "garage=109"
+  "postgres=102" "cloudflared=103" "admin=105" "ai=106"
+  "playground=107" "garage=109" "media=110"
 )
-if [ "${HOMELAB_ALL_HOSTS:-0}" = "1" ]; then
-  hosts+=( "cloudflared=103" "media=110" )
-fi
 
 archive=/tmp/homelab-core.tgz
 tar czf "$archive" -C "$REPO_ROOT" --exclude=.git --exclude=tofu/.terraform .
@@ -50,7 +46,18 @@ apply() {
   [ "$was_stopped" = 1 ] && pct stop "$vmid" || true
 }
 
+# Optional args = a subset of host names to apply (e.g. `apply-nixos.sh cloudflared`).
+# No args = all of them.
+want=( "$@" )
+in_want() {
+  [ "${#want[@]}" -eq 0 ] && return 0
+  local w; for w in "${want[@]}"; do [ "$w" = "$1" ] && return 0; done
+  return 1
+}
+
 for entry in "${hosts[@]}"; do
-  apply "${entry%%=*}" "${entry#*=}"
+  name="${entry%%=*}"
+  in_want "$name" || continue
+  apply "$name" "${entry#*=}"
 done
-echo "all NixOS hosts applied."
+echo "NixOS hosts applied."

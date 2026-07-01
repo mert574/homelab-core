@@ -15,7 +15,7 @@ sets the host up to the point where you can SSH in and run `bootstrap.sh`.
   secrets, applies Layer 2). See `DEPLOY.md`.
 
 The host is pinned to `192.168.178.100/24`, gw `192.168.178.1`, filesystem
-LVM-thin (ext4 layout), fqdn `proxmox.lan`. That `.100` is the address the
+LVM-thin (ext4 layout), fqdn `proxmox.internal`. That `.100` is the address the
 OpenTofu provider talks to (`pve_endpoint`).
 
 ## Build the ISO

@@ -129,8 +129,8 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
 - The Garage Nix cache is unverified until the machine is up. The `garage-setup`
   service's exact CLI calls (`layout assign/apply`, `bucket alias`, `key import`)
   may need tweaks against the pinned garage version, and the read path assumes
-  Garage's web port matches `Host: nix-cache.garage.lan:3902` to the bucket alias
-  with the port stripped (if it doesn't, alias the bucket `nix-cache.garage.lan:3902`
+  Garage's web port matches `Host: nix-cache.garage.internal:3902` to the bucket alias
+  with the port stripped (if it doesn't, alias the bucket `nix-cache.garage.internal:3902`
   or move the web serving to port 80).
 - k8s manifests are not cluster-tested: Cilium values, the OCI-Helm Argo sources (ARC),
   the Gateway -> external-Garage routing, and ARC chart `0.14.2` may need tweaks.
