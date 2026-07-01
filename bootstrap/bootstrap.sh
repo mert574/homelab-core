@@ -116,14 +116,16 @@ ensure_templates() {
   # Proxmox `local` doesn't allow the snippets content type. Enable it.
   pvesm set local --content vztmpl,iso,backup,snippets 2>/dev/null || true
 
-  # Debian LXC (pihole). Don't hardcode the point release: grab whatever
-  # debian-13-standard is current and point tofu at that exact volume id.
+  # Debian LXC (pihole, playground-debian). Detect whatever debian-13-standard is
+  # current (no version hardcoded), download it, and write the exact volume id to a
+  # tofu auto.tfvars, so a plain `tofu apply` uses the same value this script did.
   pveam update || true
   local deb_tmpl
   deb_tmpl="$(pveam available --section system 2>/dev/null | awk '/debian-13-standard/{print $NF}' | sort -V | tail -1)"
   if [ -n "$deb_tmpl" ]; then
     pveam list local 2>/dev/null | grep -q "$deb_tmpl" || pveam download local "$deb_tmpl"
-    export TF_VAR_debian_ct_template="local:vztmpl/$deb_tmpl"
+    printf 'debian_ct_template = "local:vztmpl/%s"\n' "$deb_tmpl" \
+      > "$REPO_ROOT/tofu/debian_template.auto.tfvars"
   fi
 
   # NixOS LXC (every NixOS guest). Proxmox ships none, so build one with

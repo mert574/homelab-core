@@ -60,13 +60,14 @@ variable "ct_root_password" {
   sensitive   = true
 }
 
-# Container OS template for the lone Debian guest (pihole). Download once on the
-# node; confirm the current point release with `pveam available | grep debian-13`,
-# then `pveam download local debian-13-standard_13.x-1_amd64.tar.zst`.
+# Container OS template for the Debian guests (pihole, playground-debian).
+# No version hardcoded: bootstrap.sh detects the current debian-13-standard and
+# writes the exact volume id to tofu/debian_template.auto.tfvars, which tofu loads
+# automatically. The containers also ignore_changes on this, so a later point
+# release never force-recreates them.
 variable "debian_ct_template" {
   type        = string
-  description = "Volume id of the Debian LXC template (pihole only)"
-  default     = "local:vztmpl/debian-13-standard_13.1-1_amd64.tar.zst"
+  description = "Volume id of the Debian LXC template. Set via debian_template.auto.tfvars (written by bootstrap.sh)."
 }
 
 # Per-guest static IPs (host part only is fine to vary). Full address with suffix.

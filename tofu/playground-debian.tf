@@ -51,4 +51,9 @@ resource "proxmox_virtual_environment_container" "playground_debian" {
     template_file_id = var.debian_ct_template
     type             = "debian"
   }
+
+  # Never recreate over a Debian point-release template drift.
+  lifecycle {
+    ignore_changes = [operating_system]
+  }
 }

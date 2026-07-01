@@ -46,6 +46,12 @@ resource "proxmox_virtual_environment_container" "pihole" {
     type             = "debian"
   }
 
+  # The template is only a create-time seed; never recreate this container just
+  # because a newer Debian point release changed the volume id.
+  lifecycle {
+    ignore_changes = [operating_system]
+  }
+
   # Start first on boot so the LAN has DNS before anything else comes up.
   startup {
     order = 1
