@@ -23,38 +23,41 @@ hosts=(
 archive=/tmp/homelab-core.tgz
 tar czf "$archive" -C "$REPO_ROOT" --exclude=.git --exclude=tofu/.terraform .
 
+# Run a command inside a NixOS CT with the Nix profile on PATH. pct exec's default
+# PATH has no /run/current-system/sw/bin, so bare ip/install/nixos-rebuild fail.
+cx() {
+  local id="$1"; shift
+  pct exec "$id" -- /run/current-system/sw/bin/bash -c \
+    "export PATH=/run/current-system/sw/bin:/run/wrappers/bin:\$PATH; $*"
+}
+
 apply() {
   local name="$1" vmid="$2"
   echo "== $name (CT $vmid) =="
-  # Some guests are started=false (on-demand). Start them to apply, and give the
-  # network a moment so nixos-rebuild can fetch. Restore the stopped ones after.
+  # Some guests are started=false (on-demand). Start them to apply; restore after.
   local was_stopped=0
   if ! pct status "$vmid" | grep -q running; then
     was_stopped=1
     pct start "$vmid"
     sleep 15
   fi
-  # These CTs are ostype "unmanaged", so Proxmox doesn't apply the IP inside and
-  # the NixOS config that sets it isn't active until the first rebuild - which
-  # needs the network to fetch. Break the chicken-and-egg: read the IP/gw Proxmox
-  # already knows (net0) and set it temporarily so nixos-rebuild can reach the net.
+  # unmanaged ostype -> Proxmox doesn't set the IP inside, and the NixOS config
+  # that does isn't active until the first rebuild (which needs the network). Set
+  # the IP Proxmox already knows (net0) temporarily so the rebuild can fetch.
   local ip gw
   ip="$(pct config "$vmid" | grep -oP 'net0:.*ip=\K[0-9./]+' || true)"
   gw="$(pct config "$vmid" | grep -oP 'net0:.*gw=\K[0-9.]+' || true)"
-  if [ -n "$ip" ] && ! pct exec "$vmid" -- ip -4 addr show dev eth0 | grep -q "${ip%/*}"; then
-    pct exec "$vmid" -- ip addr add "$ip" dev eth0 2>/dev/null || true
-    pct exec "$vmid" -- ip link set eth0 up 2>/dev/null || true
-    [ -n "$gw" ] && pct exec "$vmid" -- ip route add default via "$gw" 2>/dev/null || true
-    pct exec "$vmid" -- bash -c 'echo "nameserver 1.1.1.1" > /etc/resolv.conf' 2>/dev/null || true
+  if [ -n "$ip" ] && ! cx "$vmid" "ip -4 addr show dev eth0" 2>/dev/null | grep -q "${ip%/*}"; then
+    cx "$vmid" "ip addr add $ip dev eth0" 2>/dev/null || true
+    cx "$vmid" "ip link set eth0 up" 2>/dev/null || true
+    [ -n "$gw" ] && cx "$vmid" "ip route add default via $gw" 2>/dev/null || true
+    cx "$vmid" "rm -f /etc/resolv.conf; echo nameserver 1.1.1.1 > /etc/resolv.conf" 2>/dev/null || true
   fi
-  pct exec "$vmid" -- install -d -m 700 /var/lib/sops-nix
+  cx "$vmid" "install -d -m 700 /var/lib/sops-nix"
   pct push "$vmid" "$AGE_KEY" /var/lib/sops-nix/key.txt --perms 600
   pct push "$vmid" "$archive" /root/homelab-core.tgz
-  pct exec "$vmid" -- bash -c \
-    'rm -rf /root/homelab-core && mkdir -p /root/homelab-core && tar xzf /root/homelab-core.tgz -C /root/homelab-core'
-  pct exec "$vmid" -- nixos-rebuild switch \
-    --flake "/root/homelab-core/nix#$name" \
-    --extra-experimental-features 'nix-command flakes'
+  cx "$vmid" "rm -rf /root/homelab-core && mkdir -p /root/homelab-core && tar xzf /root/homelab-core.tgz -C /root/homelab-core"
+  cx "$vmid" "nixos-rebuild switch --flake /root/homelab-core/nix#$name --extra-experimental-features 'nix-command flakes'"
   # put on-demand guests back to sleep
   [ "$was_stopped" = 1 ] && pct stop "$vmid" || true
 }

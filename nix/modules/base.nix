@@ -46,6 +46,9 @@ in
   # its own networking.interfaces.eth0 address; the gateway is shared here.
   proxmoxLXC.manageNetwork = true;
   networking.defaultGateway = lib.mkDefault "192.168.178.1";
+  # LAN is IPv4-only and the ISP's IPv6 path stalls outbound TLS; keep guests off
+  # it so fetches (cache.nixos.org, GHCR, etc.) don't hang on a dead v6 route.
+  networking.enableIPv6 = false;
 
   time.timeZone = "Europe/Berlin";
 
