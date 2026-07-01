@@ -14,9 +14,40 @@ in
   # Shared storage + a common group so every service can read/write. setgid (2)
   # so new files inherit the media group.
   users.groups.media.gid = 1500; # fixed so the container apps can write (PGID)
+
+  # Storage pool: /srv is a mergerfs UNION of two branches — the boot disk
+  # (/mnt/disk-boot, on the CT rootfs) and the 114G USB (/mnt/disk-usb, a host
+  # bind-mount added out-of-band via `pct set --mp0`, since a tofu mount_point is
+  # ForceNew and would destroy the CT). Union-at-/srv keeps /srv/media and
+  # /srv/downloads on ONE logical fs so the *arr apps hardlink instead of copy,
+  # while spanning both disks. mergerfs degrades gracefully if the USB is pulled:
+  # the pool stays up serving the boot branch, only USB-resident files go missing.
+  # The host mountpoint /mnt/media-usb-110 is `chattr +i` so if the USB unmounts,
+  # mergerfs can't write into the empty stub and fill the boot disk.
+  fileSystems."/srv" = {
+    device = "/mnt/disk-boot:/mnt/disk-usb";
+    fsType = "fuse.mergerfs";
+    options = [
+      "cache.files=partial"
+      "dropcacheonclose=true"
+      "category.create=mfs"   # new files -> branch with most free space
+      "moveonenospc=true"     # spill to the other branch if one fills mid-write
+      "minfreespace=10G"      # boot branch shares the OS rootfs; keep headroom
+      "allow_other"           # cross-uid access (root mounts it; arr/jellyfin/qbt use it)
+      "nofail"                # a missing branch must not block boot
+      "x-systemd.requires-mounts-for=/mnt/disk-usb"
+    ];
+  };
+  system.fsPackages = [ pkgs.mergerfs ]; # provides the mount.fuse.mergerfs helper
+  programs.fuse.userAllowOther = true;
+
   systemd.tmpfiles.rules = [
-    "d ${mediaDir} 2775 root media - -"
-    "d ${downloadDir} 2775 root media - -"
+    # Boot-disk branch of the pool. The USB branch dirs live on the USB itself
+    # (created when it was formatted), so they aren't managed here — that also
+    # avoids fighting the immutable stub when the USB is absent.
+    "d /mnt/disk-boot 2775 root media - -"
+    "d /mnt/disk-boot/media 2775 root media - -"
+    "d /mnt/disk-boot/downloads 2775 root media - -"
     # The iGPU is passed into the LXC (tofu/media.tf dev0) owned root:root, so the
     # jellyfin user (in group render) can't open it and HW transcoding fails with
     # "no valid media source". Hand the render node to the render group on every boot.

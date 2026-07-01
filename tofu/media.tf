@@ -13,6 +13,16 @@ resource "proxmox_virtual_environment_container" "media" {
 
   features {
     nesting = true
+    fuse    = true # mergerfs (FUSE) pool for /srv; see nix/hosts/media.nix
+  }
+
+  # The 114G USB is bind-mounted into the CT as the second mergerfs branch. A tofu
+  # `mount_point {}` block is ForceNew (would destroy the CT + rootfs), so the bind
+  # mount is applied out-of-band with:
+  #   pct set 110 --mp0 /mnt/media-usb-110,mp=/mnt/disk-usb,backup=0
+  # and ignored here so tofu never tries to reconcile (and recreate) it.
+  lifecycle {
+    ignore_changes = [mount_point]
   }
 
   cpu {
