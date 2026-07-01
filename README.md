@@ -52,9 +52,11 @@ app pods  ->  Postgres (LXC, over the LAN)
 | k3s          | VM   | 4    | 8GB    | stateless web stack, Cilium, the apps |
 | garage       | LXC  | 2    | 1GB    | S3 + static asset hosting            |
 | media        | LXC  | 4    | 2GB    | Jellyfin + *arr + discovery          |
+| ccflare      | LXC  | 2    | 1GB    | Anthropic/OpenAI proxy + dashboard   |
 
-These total ~14GB, leaving ~1.5GB free (CI runners are ephemeral ARC pods, zero
-at rest).
+These total ~15GB, leaving ~0.5GB free (CI runners are ephemeral ARC pods, zero
+at rest). ccflare idles light (a Bun server, ~150MB), but we're at the 16GB wall;
+if it's tight, stop a heavy on-demand box or drop ccflare's `dedicated` RAM.
 
 On-demand guests, not autostarted, so ~0 RAM at rest; start one when you need it:
 
@@ -88,6 +90,7 @@ install answer file, Layer 0-1, not by OpenTofu).
 | `.108`            | playground-debian (LXC, Debian) - FHS twin  |
 | `.109`            | garage (LXC, NixOS) - S3 + static hosting   |
 | `.110`            | media (LXC, NixOS) - Jellyfin + *arr + scripts |
+| `.111`            | ccflare (LXC, NixOS) - Anthropic/OpenAI proxy  |
 | `.200` - `.220`   | Cilium LB pool (.200 pinned to the Gateway) |
 
 The `ai` sandbox is deliberately **not** on this LAN. It lives alone on an
@@ -178,7 +181,7 @@ The ordered, compiled checklist for standing this up lives in
 
 - [x] Bootstrap trust model: public repo + SOPS/age, `bootstrap/bootstrap.sh`
 - [x] Layer 2: OpenTofu defs for 10 guests (pihole, postgres, cloudflared, k3s, admin, ai, playground, playground-debian, garage, media)
-- [x] NixOS hosts: base/dev/sops modules + admin, ai, playground, postgres, cloudflared, garage, media (`nix flake check` clean)
+- [x] NixOS hosts: base/dev/sops modules + admin, ai, playground, postgres, cloudflared, garage, media, ccflare (`nix flake check` clean)
 - [x] Host network: isolated `vmbr1` bridge in `bootstrap/host-network/`
 - [x] Layer 3 foundation: Cilium + Argo CD + networking manifests (Gateway pinned `.200`)
 - [x] Garage: S3 + static website hosting (`nix/hosts/garage.nix`)
@@ -186,6 +189,7 @@ The ordered, compiled checklist for standing this up lives in
 - [x] Pulse: image pipeline (pulse repo) + manifests in `cluster/apps/pulse/` (SPA from Garage)
 - [x] CI runners: ARC scale-to-zero in `cluster/apps/arc/`
 - [x] Media box: Jellyfin + minidlna, Sonarr/Radarr/Lidarr/Bazarr, Prowlarr + Byparr, qBittorrent (Mullvad), digarr/Jellyseerr/SuggestArr discovery, QuickSync
+- [x] ccflare: multi-account Anthropic/OpenAI proxy + dashboard, Bun service pinned to a commit (`nix/hosts/ccflare.nix`)
 - [x] Validation: `make validate` + CI (tofu, `nix flake check`, kubeconform, shellcheck, actionlint)
 - [ ] Layer 0-1: USB auto-install (`bootstrap/`, stubbed)
 - [ ] Asset push: a `web` CI job that builds + `s3 sync`s the SPA to Garage (not written)

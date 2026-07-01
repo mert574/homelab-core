@@ -68,9 +68,28 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
     activate the `nix-cache-push` job
 - [ ] **cloudflared**: `cloudflared tunnel create homelab` -> save the creds JSON as
       `secrets/cloudflared.creds.enc`; put the tunnel UUID, the Gateway LB IP, and your
-      media hostnames in `nix/hosts/cloudflared.nix`; add a DNS route per hostname
-      (`cloudflared tunnel route dns ...` or the dashboard). Expose only Jellyfin +
-      Jellyseerr; keep *arr/qBittorrent/etc. LAN-only (or behind Cloudflare Access)
+      hostnames in `nix/hosts/cloudflared.nix`. Ingress is locally-managed there; the
+      only per-hostname step in Cloudflare is a DNS route so the name resolves to the
+      tunnel. One tunnel serves both zones. Add a route per hostname (must be inside a
+      zone whose nameservers point at Cloudflare):
+  - `pulsepager.com`, `app.pulsepager.com`
+  - `mert574.dev`: `media`, `requests`, `garage`, `proxmox`, `ccflare`
+  - ```
+    for h in media.mert574.dev requests.mert574.dev garage.mert574.dev \
+             proxmox.mert574.dev ccflare.mert574.dev; do
+      cloudflared tunnel route dns homelab "$h"
+    done
+    ```
+    (creates a proxied CNAME -> `<tunnel-uuid>.cfargotunnel.com`; the dashboard works too)
+  - Keep *arr/qBittorrent/etc. LAN-only. `media`/`requests` (Jellyfin/Jellyseerr) and
+    `garage` (S3 API) are public with app-level auth; **`proxmox` and `ccflare` must sit
+    behind Cloudflare Access** (Zero Trust -> Access -> Applications: one self-hosted app
+    per hostname, e.g. an allow policy on your email). Access is dashboard/API-only here
+    (no cloudflare TF provider), so it's a manual step — do it before the DNS route goes
+    live to avoid exposing them unauthenticated.
+  - Note: routing S3 (`garage`) through Cloudflare's proxy caps request body size on
+    the free plan (~100 MB) and rewrites headers; fine for small assets, not big
+    multipart uploads. Use the LAN endpoint for those.
 
 ## 5. Cluster (Layer 3)
 

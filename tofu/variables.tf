@@ -125,6 +125,12 @@ variable "media_ip" {
   default     = "192.168.178.110/24"
 }
 
+variable "ccflare_ip" {
+  type        = string
+  description = "Static IPv4 for the ccflare proxy LXC"
+  default     = "192.168.178.111/24"
+}
+
 
 # NixOS LXC template, shared by the admin and ai boxes. Proxmox ships no NixOS
 # template, so build one with nixos-generators (-f proxmox-lxc) or grab a prebuilt
