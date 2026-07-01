@@ -1,0 +1,18 @@
+# pulsepager.com (the docs-site): no API, everything goes to the Garage bucket
+# matching the request Host (pulsepager.com). Same garage-web Service as the SPA;
+# Garage picks the bucket by Host.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: pulse-docs
+  namespace: pulse
+spec:
+  parentRefs:
+    - name: main
+      namespace: gateway
+  hostnames:
+    - "pulsepager.com"
+  rules:
+    - backendRefs:
+        - name: garage-web
+          port: 80

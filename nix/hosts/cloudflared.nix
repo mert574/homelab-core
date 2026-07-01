@@ -19,10 +19,11 @@
       credentialsFile = config.sops.secrets."cloudflared-creds".path;
       default = "http_status:404";
       ingress = {
-        # Everything for pulsepager.com goes to the Cilium Gateway LB; the k3s
-        # HTTPRoute splits /api+/auth to the API and the rest to the SPA.
-        "pulsepager.com" = "http://192.168.178.200:80"; # the pinned Gateway LB IP
-        # Media apps are intentionally NOT exposed here; they stay LAN-only (.internal).
+        # Both hostnames go to the Cilium Gateway LB; the k3s HTTPRoutes split by
+        # host: app.pulsepager.com -> the Pulse app (SPA + /api), pulsepager.com ->
+        # the docs-site. Media apps stay LAN-only (.internal), not exposed here.
+        "app.pulsepager.com" = "http://192.168.178.200:80";
+        "pulsepager.com" = "http://192.168.178.200:80";
       };
     };
   };

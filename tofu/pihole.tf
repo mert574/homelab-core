@@ -8,6 +8,11 @@ resource "proxmox_virtual_environment_container" "pihole" {
   description  = "Pi-hole DNS + ad blocking (managed by homelab-core)"
   unprivileged = true
 
+  # trixie's systemd 257 needs nesting on in an unprivileged container.
+  features {
+    nesting = true
+  }
+
   cpu {
     cores = 1
   }

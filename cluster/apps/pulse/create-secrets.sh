@@ -1,32 +1,36 @@
 #!/usr/bin/env bash
-# Create the pulse namespace, GHCR pull secret, and pulse-secrets from the
-# decrypted env. Run once (and after rotation) with KUBECONFIG set and the env
-# sourced. Nothing secret is committed; this reuses the age-decrypted env.
+# Create the pulse namespace, the GHCR pull secret, pulse-secrets (the whole app
+# env), and pulse-jwt (the RS256 signing key mounted as a file). Idempotent.
+# Run with KUBECONFIG set and the sops env available:
+#   export SOPS_AGE_KEY_FILE=/root/.config/sops/age/keys.txt
+#   set -a; eval "$(sops -d secrets/homelab.enc.env)"; set +a   # for GIT_HTTP_TOKEN
+#   cluster/apps/pulse/create-secrets.sh
 set -euo pipefail
-: "${PULSE_DB_PASSWORD:?}" "${PULSE_SECRET_KEY:?}" "${GIT_HTTP_TOKEN:?}"
+: "${GIT_HTTP_TOKEN:?}" "${SOPS_AGE_KEY_FILE:?}"
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$HERE/../../.." && pwd)"
 
 kubectl create namespace pulse --dry-run=client -o yaml | kubectl apply -f -
 
-# pull images from your GHCR
+# pull images from GHCR
 kubectl -n pulse create secret docker-registry ghcr \
   --docker-server=ghcr.io \
   --docker-username="${GIT_HTTP_USERNAME:-x-access-token}" \
   --docker-password="${GIT_HTTP_TOKEN}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-# postgres LXC over the LAN
-dsn="postgres://pulse:${PULSE_DB_PASSWORD}@192.168.178.102:5432/pulse?sslmode=disable"
-
-kubectl -n pulse create secret generic pulse-secrets \
-  --from-literal=PULSE_POSTGRES_DSN="$dsn" \
-  --from-literal=PULSE_SECRET_KEY="$PULSE_SECRET_KEY" \
-  --from-literal=PULSE_JWT_PRIVATE_KEY_PEM="${PULSE_JWT_PRIVATE_KEY_PEM:-}" \
-  --from-literal=PULSE_GOOGLE_CLIENT_ID="${PULSE_GOOGLE_CLIENT_ID:-}" \
-  --from-literal=PULSE_GOOGLE_CLIENT_SECRET="${PULSE_GOOGLE_CLIENT_SECRET:-}" \
-  --from-literal=PULSE_GITHUB_CLIENT_ID="${PULSE_GITHUB_CLIENT_ID:-}" \
-  --from-literal=PULSE_GITHUB_CLIENT_SECRET="${PULSE_GITHUB_CLIENT_SECRET:-}" \
-  --from-literal=PULSE_SMTP_PASSWORD="${PULSE_SMTP_PASSWORD:-}" \
-  --from-literal=PULSE_BILLING_WEBHOOK_SECRET="${PULSE_BILLING_WEBHOOK_SECRET:-}" \
+# the whole Pulse env (its DSN already points at our postgres LXC + redis service)
+env_plain="$(mktemp)"; trap 'rm -f "$env_plain"' EXIT
+sops -d --input-type dotenv --output-type dotenv "$REPO_ROOT/secrets/pulse.env.enc" > "$env_plain"
+kubectl -n pulse create secret generic pulse-secrets --from-env-file="$env_plain" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-echo "pulse namespace, ghcr pull secret, and pulse-secrets created."
+# JWT signing key, mounted as a file at PULSE_JWT_PRIVATE_KEY_PATH (see api.yaml)
+jwt_plain="$(mktemp)"
+sops -d --input-type binary --output-type binary "$REPO_ROOT/secrets/pulse-jwt.key.enc" > "$jwt_plain"
+kubectl -n pulse create secret generic pulse-jwt --from-file=jwt-private.pem="$jwt_plain" \
+  --dry-run=client -o yaml | kubectl apply -f -
+rm -f "$jwt_plain"
+
+echo "pulse: namespace + ghcr pull secret + pulse-secrets + pulse-jwt created."

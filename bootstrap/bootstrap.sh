@@ -169,12 +169,20 @@ run_pipeline() {
   sleep 10
   bash "$REPO_ROOT/scripts/inject-hosts.sh"
 
+  # Headless Pi-hole install + config on the Debian CT (uses PIHOLE_WEBPASSWORD
+  # from the sops env sourced above).
+  bash "$REPO_ROOT/scripts/pihole-setup.sh"
+
   # Configure every NixOS guest (nixos-rebuild inside each via pct).
   bash "$REPO_ROOT/scripts/apply-nixos.sh"
 
-  # Layer 3 still runs once k3s is up and we have its kubeconfig:
-  echo "Guests configured. Next: cluster/bootstrap/install.sh with KUBECONFIG" >&2
-  echo "from the k3s VM (see DEPLOY.md)." >&2
+  # Debian guests: boot-time apt upgrade + ghostty terminfo (best-effort).
+  bash "$REPO_ROOT/scripts/apt-boot-upgrade.sh" || echo "apt-boot-upgrade had issues (non-fatal)" >&2
+  bash "$REPO_ROOT/scripts/ghostty-terminfo.sh" || echo "ghostty-terminfo had issues (non-fatal)" >&2
+
+  # Layer 3: bring up the cluster + Pulse. Non-fatal so a cluster hiccup doesn't
+  # undo Layers 0-2 (they're already applied).
+  bash "$REPO_ROOT/cluster/bootstrap/up.sh" || echo "Layer 3 needs attention (see above)" >&2
 }
 
 main() {

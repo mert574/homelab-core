@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# No-touch Layer 3, run on the Proxmox host after Layer 2. Waits for the k3s VM,
+# grabs its kubeconfig, installs kubectl+helm, bootstraps the cluster
+# (Gateway/Cilium/Argo/root-app), creates the Pulse secrets, and (if a token is
+# set) the ARC runner secret. The caller sources the sops env first, so
+# GIT_HTTP_TOKEN / GITHUB_RUNNER_TOKEN / SOPS_AGE_KEY_FILE are already exported.
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$HERE/../.." && pwd)"
+K3S_VMID=104
+K3S_IP=192.168.178.104
+export KUBECONFIG=/root/.kube/config
+
+# 1. tools on the host
+if ! command -v kubectl >/dev/null 2>&1; then
+  kver="$(curl -fsSL https://dl.k8s.io/release/stable.txt)"
+  curl -fsSL "https://dl.k8s.io/release/${kver}/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl
+  chmod +x /usr/local/bin/kubectl
+fi
+command -v helm >/dev/null 2>&1 || curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+# 2. wait for k3s on the VM, then fetch + rewrite the kubeconfig
+echo "waiting for k3s on VM $K3S_VMID (its cloud-init installs it)..."
+until qm guest exec "$K3S_VMID" -- test -f /etc/rancher/k3s/k3s.yaml >/dev/null 2>&1; do sleep 5; done
+install -d -m 700 /root/.kube
+qm guest exec "$K3S_VMID" -- cat /etc/rancher/k3s/k3s.yaml \
+  | python3 -c 'import json,sys; print(json.load(sys.stdin)["out-data"], end="")' \
+  | sed "s#https://127.0.0.1:6443#https://${K3S_IP}:6443#" > "$KUBECONFIG"
+chmod 600 "$KUBECONFIG"
+kubectl get nodes
+
+# 3. cluster: Gateway CRDs -> Cilium -> Argo -> root app
+bash "$REPO_ROOT/cluster/bootstrap/install.sh"
+
+# 4. Pulse secrets (namespace, GHCR pull, pulse-secrets, pulse-jwt)
+bash "$REPO_ROOT/cluster/apps/pulse/create-secrets.sh"
+
+# 5. ARC self-hosted runners (optional; needs a token with the right scope)
+if [ -n "${GITHUB_RUNNER_TOKEN:-}" ]; then
+  kubectl create namespace arc-runners --dry-run=client -o yaml | kubectl apply -f -
+  kubectl -n arc-runners create secret generic arc-github \
+    --from-literal=github_token="$GITHUB_RUNNER_TOKEN" \
+    --dry-run=client -o yaml | kubectl apply -f -
+fi
+
+echo "Layer 3 up. Argo CD is syncing cluster/apps; Pulse will roll out once its images pull."

@@ -38,6 +38,16 @@ spec:
           resources:
             requests: { cpu: 250m, memory: 256Mi }
             limits: { memory: 512Mi }
+          volumeMounts:
+            # the app reads PULSE_JWT_PRIVATE_KEY_PATH (/opt/pulse-pager/jwt-private.pem)
+            - name: jwt
+              mountPath: /opt/pulse-pager/jwt-private.pem
+              subPath: jwt-private.pem
+              readOnly: true
+      volumes:
+        - name: jwt
+          secret:
+            secretName: pulse-jwt
 ---
 apiVersion: v1
 kind: Service

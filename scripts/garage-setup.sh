@@ -28,6 +28,10 @@ ensure_site() {
   g bucket website --allow "$1" >/dev/null
 }
 ensure_site nix-cache nix-cache.garage.internal
+# Pulse frontends: static buckets served by Host over the web port. The Gateway
+# (app) / cloudflared route here; assets are pushed by CI (the write key below).
+ensure_site pulse-app app.pulsepager.com
+ensure_site pulse-docs pulsepager.com
 
 # CI write key, imported from sops so it survives rebuilds and matches the GitHub
 # secret the push job uses. Read stays anonymous over the web port.
