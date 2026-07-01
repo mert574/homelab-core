@@ -19,6 +19,7 @@ resource "proxmox_virtual_environment_container" "cloudflared" {
 
   memory {
     dedicated = 256
+    swap      = 4096
   }
 
   disk {

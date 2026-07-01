@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Inject the central LAN names (network/lan-hosts) into /etc/hosts on every
+# Inject the central LAN names (nix/lan-hosts) into /etc/hosts on every
 # non-NixOS machine: the Proxmox host, the Debian LXCs, and the k3s VM. The NixOS
 # guests get the same file declaratively via networking.extraHosts, so they're
 # skipped here. Run on the Proxmox host (uses pct + qm). Idempotent: it replaces
-# a marked block, so re-running after editing network/lan-hosts just refreshes it.
+# a marked block, so re-running after editing nix/lan-hosts just refreshes it.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-HOSTS_FILE="$REPO_ROOT/network/lan-hosts"
+HOSTS_FILE="$REPO_ROOT/nix/lan-hosts"
 
 # Debian LXCs (pihole, playground-debian) by vmid.
 cts=( "pihole=101" "playground-debian=108" )

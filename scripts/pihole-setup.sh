@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Headless Pi-hole install + config on the pihole CT (101). Run on the Proxmox
 # host. Idempotent: installs Pi-hole if missing, then (re)sets the admin password,
-# the .internal local DNS records (from network/lan-hosts), and turns off FTL's
+# the .internal local DNS records (from nix/lan-hosts), and turns off FTL's
 # NTP clock-setting (which an unprivileged LXC can't do).
 #
 # Needs PIHOLE_WEBPASSWORD in the environment (it's in the sops env):
@@ -21,7 +21,7 @@ pct status "$CT" | grep -q running || { pct start "$CT"; sleep 5; }
 # dns.hosts array from lan-hosts: one "IP name" per hostname (split multi-name lines).
 records="$(awk 'NF && $1 !~ /^#/ {
   for (i=2;i<=NF;i++) { if ($i ~ /^#/) break; printf "%s\"%s %s\"", (c++?",":""), $1, $i }
-}' "$REPO_ROOT/network/lan-hosts")"
+}' "$REPO_ROOT/nix/lan-hosts")"
 
 pct exec "$CT" -- env PIHOLE_WEBPASSWORD="$PIHOLE_WEBPASSWORD" DNS_HOSTS="[$records]" bash -s <<'INNER'
 set -euo pipefail

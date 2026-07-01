@@ -21,6 +21,7 @@ resource "proxmox_virtual_environment_container" "media" {
 
   memory {
     dedicated = 2048
+    swap      = 4096
   }
 
   disk {

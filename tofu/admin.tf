@@ -21,6 +21,7 @@ resource "proxmox_virtual_environment_container" "admin" {
 
   memory {
     dedicated = 1024
+    swap      = 4096
   }
 
   disk {

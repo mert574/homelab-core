@@ -19,6 +19,7 @@ resource "proxmox_virtual_environment_container" "postgres" {
 
   memory {
     dedicated = 512
+    swap      = 4096
   }
 
   disk {

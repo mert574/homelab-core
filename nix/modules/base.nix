@@ -34,7 +34,7 @@ in
   # nix-cache.garage.internal and the rest work without a DNS server. The ai box is on
   # the isolated bridge so those LAN IPs aren't routable there; the cache's
   # fallback + connect-timeout above mean it just builds locally on ai.
-  networking.extraHosts = builtins.readFile ../../network/lan-hosts;
+  networking.extraHosts = builtins.readFile ../lan-hosts;
 
   # Resolver so nixos-rebuild can reach cache.nixos.org on first apply (pihole
   # isn't up yet). mkDefault so hosts like ai can override with their own.
