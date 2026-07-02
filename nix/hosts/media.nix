@@ -101,8 +101,13 @@ in
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
-      intel-media-driver # iHD VAAPI driver (Gen9+) — the working path here
-      vpl-gpu-rt         # oneVPL runtime for QSV (kept, but QSV/MFX is broken in-LXC)
+      intel-media-driver    # iHD VAAPI driver (Gen9+) — the working path here
+      vpl-gpu-rt            # oneVPL runtime for QSV (kept, but QSV/MFX is broken in-LXC)
+      intel-compute-runtime-legacy1 # NEO OpenCL runtime — Jellyfin tone-maps HDR/Dolby
+                            # Vision to SDR via tonemap_opencl; UHD 630 (Gen9.5) has no
+                            # VAAPI VPP tonemap, so without OpenCL every HDR transcode
+                            # fails. Must be the *legacy1* build: mainline NEO dropped
+                            # Gen9-11 support, leaving UHD 630 with zero OpenCL platforms.
     ];
   };
 
