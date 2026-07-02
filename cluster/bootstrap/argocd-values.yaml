@@ -3,3 +3,58 @@
 configs:
   params:
     server.insecure: true
+  cm:
+    # Argo's default resource.exclusions hides EndpointSlice (discovery.k8s.io) to
+    # cut watch churn. But cluster/apps/pulse/garage-web.yaml declares a manual
+    # EndpointSlice to reach the Garage LXC (outside the cluster) — while excluded,
+    # Argo silently never applies it and the SPA route has no backend. This is the
+    # same default list as upstream with the EndpointSlice kind removed, so that
+    # one resource is managed from git. Keep in sync when bumping the argo-cd chart.
+    resource.exclusions: |
+      - apiGroups:
+        - ''
+        - discovery.k8s.io
+        kinds:
+        - Endpoints
+      - apiGroups:
+        - coordination.k8s.io
+        kinds:
+        - Lease
+      - apiGroups:
+        - authentication.k8s.io
+        - authorization.k8s.io
+        kinds:
+        - SelfSubjectReview
+        - TokenReview
+        - LocalSubjectAccessReview
+        - SelfSubjectAccessReview
+        - SelfSubjectRulesReview
+        - SubjectAccessReview
+      - apiGroups:
+        - certificates.k8s.io
+        kinds:
+        - CertificateSigningRequest
+      - apiGroups:
+        - cert-manager.io
+        kinds:
+        - CertificateRequest
+      - apiGroups:
+        - cilium.io
+        kinds:
+        - CiliumIdentity
+        - CiliumEndpoint
+        - CiliumEndpointSlice
+      - apiGroups:
+        - kyverno.io
+        - reports.kyverno.io
+        - wgpolicyk8s.io
+        kinds:
+        - PolicyReport
+        - ClusterPolicyReport
+        - EphemeralReport
+        - ClusterEphemeralReport
+        - AdmissionReport
+        - ClusterAdmissionReport
+        - BackgroundScanReport
+        - ClusterBackgroundScanReport
+        - UpdateRequest

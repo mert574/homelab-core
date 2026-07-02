@@ -26,3 +26,7 @@ ports:
 endpoints:
   - addresses:
       - "192.168.178.109"
+    # Explicit readiness: without it Cilium/kube-proxy only include the endpoint
+    # because a nil `ready` is treated as ready — implementation-dependent. Pin it.
+    conditions:
+      ready: true
