@@ -18,7 +18,6 @@ data:
   # billing's app port defaults to :8080; set it to match its Service/manifest.
   # Only the billing binary reads this, the others ignore it.
   PULSE_BILLING_ADDR: ":8081"
-  # TODO: your real domain
   PULSE_APP_BASE_URL: "https://app.pulsepager.com"
   PULSE_COOKIE_SECURE: "true"
   PULSE_JWT_ISSUER: "pulse"
@@ -27,9 +26,9 @@ data:
   PULSE_GOOGLE_ISSUER_URL: "https://accounts.google.com"
   PULSE_GOOGLE_REDIRECT_URL: "https://app.pulsepager.com/auth/google/callback"
   PULSE_GITHUB_REDIRECT_URL: "https://app.pulsepager.com/auth/github/callback"
-  PULSE_SMTP_HOST: ""
+  PULSE_SMTP_HOST: "smtp.resend.com"
   PULSE_SMTP_PORT: "587"
   PULSE_SMTP_USERNAME: "resend"
-  PULSE_SMTP_FROM: "Pulse Pager <no-reply@pulsepager.com>"
+  PULSE_SMTP_FROM: "Pulse Pager <noreply@pulsepager.com>"
   PULSE_SMTP_TLS_MODE: "starttls"
-  PULSE_BILLING_PROVIDER: "stub"
+  PULSE_BILLING_PROVIDER: "paddle"
