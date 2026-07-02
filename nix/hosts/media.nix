@@ -183,6 +183,27 @@ in
     volumes = [ "suggestarr-config:/app/config/config_files" ];
   };
 
+  # Live TV: regenerate the curated IPTV playlist daily (iptv-org stream URLs drift).
+  # scripts/livetv-playlist.sh curates top-mainstream Turkish + international English
+  # news + German public/news, and remaps each tvg-id to the epgshare01 XMLTV guide.
+  # The M3U tuner + XMLTV listing providers live in Jellyfin's own state (set via API),
+  # and Jellyfin re-reads the file + re-fetches the guide on its daily guide refresh.
+  systemd.services.livetv-playlist = {
+    description = "Regenerate the Jellyfin Live TV playlist (curated iptv-org + epgshare01 tvg-ids)";
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    path = with pkgs; [ bash curl gzip gnused gawk gnugrep coreutils ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.bash}/bin/bash ${../../scripts/livetv-playlist.sh} /var/lib/jellyfin/livetv/playlist.m3u";
+    };
+  };
+  systemd.timers.livetv-playlist = {
+    description = "Daily Live TV playlist refresh";
+    wantedBy = [ "timers.target" ];
+    timerConfig = { OnCalendar = "*-*-* 05:17:00"; Persistent = true; };
+  };
+
   # LAN access: web UIs, Jellyfin, DLNA discovery (UDP), the *arr apps, digarr,
   # lazylibrarian, suggestarr. (Byparr stays on localhost.)
   networking.firewall = {
