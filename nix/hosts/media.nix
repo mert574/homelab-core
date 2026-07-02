@@ -10,6 +10,11 @@ in
 {
   imports = [ ../modules/base.nix ../modules/sops.nix ];
   networking.interfaces.eth0.ipv4.addresses = [{ address = "192.168.178.110"; prefixLength = 24; }];
+  # Resolve via Pi-hole (ad-blocking + the .internal LAN names in nix/lan-hosts), instead
+  # of the base.nix public-DNS default. Podman copies this into each container's
+  # resolv.conf, so digarr resolves postgres.internal / ccflare.internal / media.internal
+  # through Pi-hole too — no per-container host injection needed.
+  networking.nameservers = lib.mkForce [ "192.168.178.101" ];
 
   # Shared storage + a common group so every service can read/write. setgid (2)
   # so new files inherit the media group.
@@ -64,7 +69,15 @@ in
     enable = true;
     wireguardConfigFile = config.sops.secrets."mullvad-wg".path;
     accessibleFrom = [ "192.168.178.0/24" "127.0.0.1" ];
-    portMappings = [{ from = 8080; to = 8080; }]; # qbittorrent web ui
+    # qBittorrent web UI, exposed on the LAN at the media host's :8085 (mapped to the
+    # namespace's :8080). NOTE: the LAN port is deliberately NOT 8080. vpn-confinement's
+    # portMapping installs a PREROUTING DNAT `--dport <from> -> 192.168.15.1:<to>` with no
+    # destination-IP match, so a `from = 8080` hijacks *every* forwarded packet to any
+    # host's :8080 — including the digarr container's calls to ccflare.internal:8080,
+    # which then landed on qBittorrent (400s). Using 8085 as the LAN port avoids that
+    # collision. The *arr apps are unaffected: they reach qBittorrent directly at the
+    # bridge IP 192.168.15.1:8080, not through this mapping.
+    portMappings = [{ from = 8085; to = 8080; }]; # qbittorrent web ui (LAN: media.internal:8085)
   };
 
   # Torrent client, confined to the VPN namespace.
@@ -128,28 +141,43 @@ in
   services.lidarr = { enable = true; group = "media"; }; # 8686
   users.users.lidarr.extraGroups = [ "media" ];
 
-  # digarr: AI music discovery (not packaged; runs as a container). Uses the
-  # postgres LXC for its DB and talks to Lidarr above. Fill secrets/digarr.env.enc
-  # from digarr's .env.example (DATABASE_URL -> the postgres LXC, AI provider key,
-  # initial creds, LIDARR_API_KEY).
+  # digarr: music discovery (not packaged; runs as a container). Discovery is driven by
+  # the Last.fm listening history of user mert574 and fed into Lidarr for downloading.
+  # Its DB is the digarr role/database on the postgres LXC (declared in postgres.nix);
+  # its AI (used for mood-discovery) goes through the homelab ccflare proxy, so no
+  # external AI key is needed. Secrets (DB_PASS, LIDARR/LASTFM keys, initial admin
+  # password) live in secrets/digarr.env.enc; non-secret wiring is inline below.
   virtualisation.podman.enable = true;
   virtualisation.oci-containers.backend = "podman";
-  # digarr is disabled for now: it needs secrets/digarr.env.enc (AI provider key +
-  # a LIDARR_API_KEY that only exists after Lidarr's first run). Re-enable by
-  # creating that sops file and uncommenting the two blocks below.
-  # sops.secrets."digarr-env" = {
-  #   format = "binary";
-  #   sopsFile = ../../secrets/digarr.env.enc;
-  # };
-  # virtualisation.oci-containers.containers.digarr = {
-  #   image = "iuliandita/digarr:stable";
-  #   ports = [ "3000:3000" ];
-  #   environment = {
-  #     AI_PROVIDER = "anthropic";
-  #     LIDARR_URL = "http://192.168.178.110:8686";
-  #   };
-  #   environmentFiles = [ config.sops.secrets."digarr-env".path ];
-  # };
+  sops.secrets."digarr-env" = {
+    format = "binary";
+    sopsFile = ../../secrets/digarr.env.enc;
+  };
+  virtualisation.oci-containers.containers.digarr = {
+    image = "iuliandita/digarr:stable";
+    ports = [ "3000:3000" ];
+    environment = {
+      PORT = "3000";
+      # AI via the homelab ccflare proxy. Use the "openai-compatible" provider (not
+      # "anthropic"): digarr SSRF-guards non-local providers and rejects a base URL that
+      # resolves to a private IP, but treats openai-compatible/ollama as local and allows
+      # it. ccflare serves an OpenAI-compatible endpoint for our claude-code account.
+      # digarr posts to `${AI_BASE_URL}/v1/chat/completions`, and ccflare routes by
+      # provider in the path, so the base URL ends at /v1/claude-code -> the request lands
+      # on /v1/claude-code/v1/chat/completions.
+      AI_PROVIDER = "openai-compatible";
+      AI_MODEL = "claude-haiku-4-5-20251001";
+      AI_BASE_URL = "http://ccflare.internal:8080/v1/claude-code";
+      # Lidarr is on this same box; reach it by .internal name (resolved via --add-host).
+      LIDARR_URL = "http://media.internal:8686";
+      # Last.fm account whose scrobbles seed discovery (the API key is the secret).
+      LASTFM_USERNAME = "mert574";
+      # first-boot admin user (password is in the encrypted env file).
+      DIGARR_INITIAL_USERNAME = "mert574";
+    };
+    environmentFiles = [ config.sops.secrets."digarr-env".path ];
+    volumes = [ "digarr-data:/app/data" ];
+  };
 
   # LazyLibrarian: books/magazines (Readarr is retired). Container.
   virtualisation.oci-containers.containers.lazylibrarian = {
@@ -207,7 +235,7 @@ in
   # LAN access: web UIs, Jellyfin, DLNA discovery (UDP), the *arr apps, digarr,
   # lazylibrarian, suggestarr. (Byparr stays on localhost.)
   networking.firewall = {
-    allowedTCPPorts = [ 8096 8920 8989 7878 9696 8080 8686 3000 6767 5055 5299 5000 ];
+    allowedTCPPorts = [ 8096 8920 8989 7878 9696 8085 8686 3000 6767 5055 5299 5000 ];
     allowedUDPPorts = [ 1900 7359 ];
   };
 }
