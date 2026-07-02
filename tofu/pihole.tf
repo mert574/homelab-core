@@ -23,7 +23,7 @@ resource "proxmox_virtual_environment_container" "pihole" {
 
   disk {
     datastore_id = var.datastore
-    size         = 8
+    size         = 2 # pihole uses <1G; 2G is plenty
   }
 
   network_interface {
