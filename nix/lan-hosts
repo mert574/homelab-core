@@ -14,5 +14,6 @@
 192.168.178.109  garage.internal nix-cache.garage.internal
 192.168.178.110  media.internal
 192.168.178.111  ccflare.internal
+192.168.178.112  vaultwarden.internal
 # ai is on the isolated 10.10.10.0/24 bridge (vmbr1), not routable from the LAN and
 # using public DNS, so it is intentionally left out here.

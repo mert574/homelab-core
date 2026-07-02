@@ -131,6 +131,12 @@ variable "ccflare_ip" {
   default     = "192.168.178.111/24"
 }
 
+variable "vaultwarden_ip" {
+  type        = string
+  description = "Static IPv4 for the Vaultwarden (Bitwarden) LXC"
+  default     = "192.168.178.112/24"
+}
+
 
 # NixOS LXC template, shared by the admin and ai boxes. Proxmox ships no NixOS
 # template, so build one with nixos-generators (-f proxmox-lxc) or grab a prebuilt

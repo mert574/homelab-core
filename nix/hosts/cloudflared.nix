@@ -33,6 +33,9 @@
         "media.mert574.dev" = "http://192.168.178.110:8096";    # Jellyfin
         "requests.mert574.dev" = "http://192.168.178.110:5055"; # Jellyseerr
         "garage.mert574.dev" = "http://192.168.178.109:3900";   # Garage S3 API
+        # Vaultwarden: its own auth guards it (do NOT add Cloudflare Access here —
+        # the Access login page breaks the Bitwarden clients). ws rides the same port.
+        "pw.mert574.dev" = "http://192.168.178.112:8000";       # Vaultwarden
 
         # --- mert574.dev admin surfaces: keep these behind Cloudflare Access
         # (email/SSO gate at the edge), since they'd otherwise be open to the

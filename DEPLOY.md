@@ -33,6 +33,8 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
       recipients) at `/var/lib/sops-nix/key.txt`
 - [ ] JWT PEM is multiline: keep it quoted in the env, or mount it as a file and set
       `PULSE_JWT_PRIVATE_KEY_PATH`
+- [ ] `VAULTWARDEN_ADMIN_TOKEN` in the env gates the Vaultwarden `/admin` panel
+      (`openssl rand -base64 48`, or an argon2 hash from `vaultwarden hash`)
 
 ## 3. Guests (Layer 2, tofu)
 
@@ -73,20 +75,24 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
       tunnel. One tunnel serves both zones. Add a route per hostname (must be inside a
       zone whose nameservers point at Cloudflare):
   - `pulsepager.com`, `app.pulsepager.com`
-  - `mert574.dev`: `media`, `requests`, `garage`, `proxmox`, `ccflare`
+  - `mert574.dev`: `media`, `requests`, `garage`, `proxmox`, `ccflare`, `pw`
   - ```
     for h in media.mert574.dev requests.mert574.dev garage.mert574.dev \
-             proxmox.mert574.dev ccflare.mert574.dev; do
+             proxmox.mert574.dev ccflare.mert574.dev pw.mert574.dev; do
       cloudflared tunnel route dns homelab "$h"
     done
     ```
     (creates a proxied CNAME -> `<tunnel-uuid>.cfargotunnel.com`; the dashboard works too)
-  - Keep *arr/qBittorrent/etc. LAN-only. `media`/`requests` (Jellyfin/Jellyseerr) and
-    `garage` (S3 API) are public with app-level auth; **`proxmox` and `ccflare` must sit
-    behind Cloudflare Access** (Zero Trust -> Access -> Applications: one self-hosted app
-    per hostname, e.g. an allow policy on your email). Access is dashboard/API-only here
-    (no cloudflare TF provider), so it's a manual step — do it before the DNS route goes
-    live to avoid exposing them unauthenticated.
+  - Keep *arr/qBittorrent/etc. LAN-only. `media`/`requests` (Jellyfin/Jellyseerr),
+    `garage` (S3 API) and `pw` (Vaultwarden) are public with app-level auth;
+    **`proxmox` and `ccflare` must sit behind Cloudflare Access** (Zero Trust ->
+    Access -> Applications: one self-hosted app per hostname, e.g. an allow policy on
+    your email). Access is dashboard/API-only here (no cloudflare TF provider), so
+    it's a manual step — do it before the DNS route goes live to avoid exposing them
+    unauthenticated.
+  - **Do NOT put `pw` (Vaultwarden) behind Cloudflare Access** — the Access login
+    interstitial breaks the Bitwarden mobile/browser API clients. It relies on its
+    own auth instead; lock down `/admin` separately (see §9).
   - Note: routing S3 (`garage`) through Cloudflare's proxy caps request body size on
     the free plan (~100 MB) and rewrites headers; fine for small assets, not big
     multipart uploads. Use the LAN endpoint for those.
@@ -140,6 +146,23 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
       forwarding (fewer peers, still works)
 - [ ] Storage: the 64GB disk will fill, plan a second/larger disk for the library
 
+## 9. Vaultwarden (password vault)
+
+- [ ] Set `VAULTWARDEN_ADMIN_TOKEN` in the sops env (§2) and add the `pw.mert574.dev`
+      tunnel route (§4). The service (`nix/hosts/vaultwarden.nix`) comes up with
+      `apply-nixos.sh vaultwarden`; state lives at `/var/lib/bitwarden_rs` in CT 112.
+- [ ] First account (signups are closed): open `https://pw.mert574.dev/admin`, log in
+      with the admin token, **Invite User** for your own email. The invited email can
+      then register at `https://pw.mert574.dev` even with `SIGNUPS_ALLOWED=false`.
+      (No SMTP configured, so there's no invite email — just register that email
+      directly after inviting it.) Enable 2FA on the account once you're in.
+- [ ] Lock down `/admin` after setup: leave the token set but treat that URL as
+      sensitive, or set `config.DISABLE_ADMIN_TOKEN = true` to turn the panel off
+      entirely once you no longer need it (re-enable to invite more users).
+- [ ] **Back up** `/var/lib/bitwarden_rs` — it *is* the vault. At minimum the
+      `db.sqlite3` + `rsa_key*` + `attachments/`.
+- [ ] Optional: register a family member the same way (invite from `/admin`).
+
 ## Not yet verified (treat first boot as testing, not guaranteed)
 
 - Nix configs pass `nix flake check` (eval) and CI builds every host toplevel, but
@@ -161,3 +184,7 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
 - Media stack is unverified: the `vpn-confinement` option names, the qbittorrent/
   lidarr/minidlna modules, podman-in-LXC for digarr, and digarr's exact env (taken
   from a repo summary, not its `.env.example`).
+- Vaultwarden is unverified on a real box: the `ADMIN_TOKEN` EnvironmentFile path
+  vs the module's own hardening, that WebSocket notifications ride the main port
+  through the tunnel, and the invite-without-SMTP first-run flow. `DOMAIN` must
+  exactly match the public URL or logins/2FA fail.
