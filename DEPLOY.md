@@ -184,7 +184,9 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
 - Media stack is unverified: the `vpn-confinement` option names, the qbittorrent/
   lidarr/minidlna modules, podman-in-LXC for digarr, and digarr's exact env (taken
   from a repo summary, not its `.env.example`).
-- Vaultwarden is unverified on a real box: the `ADMIN_TOKEN` EnvironmentFile path
-  vs the module's own hardening, that WebSocket notifications ride the main port
-  through the tunnel, and the invite-without-SMTP first-run flow. `DOMAIN` must
-  exactly match the public URL or logins/2FA fail.
+
+_Vaultwarden (CT 112) has been deployed and verified end-to-end — service +
+secret plumbing, `/alive` on LAN and public, and the web vault at
+`pw.mert574.dev`. Note: a stale `NXDOMAIN` for a new tunnel hostname can linger
+in Pi-hole/client caches; flush with `pihole restartdns` (or restart
+`pihole-FTL`) and the client resolver if a fresh public name won't resolve._
