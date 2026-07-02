@@ -12,6 +12,9 @@ data:
   PULSE_BUS: "redis"
   PULSE_REDIS_ADDR: "redis:6379"
   PULSE_HEALTH_ADDR: ":9080"
+  # Export traces + logs (OTLP gRPC) to the in-cluster collector in pulse-system.
+  PULSE_TRACING_ENABLED: "true"
+  PULSE_OTLP_ENDPOINT: "pulse-otel-collector.pulse-system.svc.cluster.local:4317"
   # billing's app port defaults to :8080; set it to match its Service/manifest.
   # Only the billing binary reads this, the others ignore it.
   PULSE_BILLING_ADDR: ":8081"

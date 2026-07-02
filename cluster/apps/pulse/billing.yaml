@@ -10,6 +10,10 @@ spec:
   template:
     metadata:
       labels: { app: billing }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9080"
+        prometheus.io/path: /metrics
     spec:
       imagePullSecrets: [{ name: ghcr }]
       securityContext:

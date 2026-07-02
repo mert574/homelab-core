@@ -12,6 +12,10 @@ spec:
   template:
     metadata:
       labels: { app: scheduler }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9080"
+        prometheus.io/path: /metrics
     spec:
       imagePullSecrets: [{ name: ghcr }]
       securityContext:
@@ -48,6 +52,10 @@ spec:
   template:
     metadata:
       labels: { app: worker }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9080"
+        prometheus.io/path: /metrics
     spec:
       imagePullSecrets: [{ name: ghcr }]
       securityContext:
@@ -84,6 +92,10 @@ spec:
   template:
     metadata:
       labels: { app: alerting }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9080"
+        prometheus.io/path: /metrics
     spec:
       imagePullSecrets: [{ name: ghcr }]
       securityContext:
@@ -120,6 +132,10 @@ spec:
   template:
     metadata:
       labels: { app: notifier }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9080"
+        prometheus.io/path: /metrics
     spec:
       imagePullSecrets: [{ name: ghcr }]
       securityContext:
