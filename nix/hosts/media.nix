@@ -174,6 +174,10 @@ in
       LASTFM_USERNAME = "mert574";
       # first-boot admin user (password is in the encrypted env file).
       DIGARR_INITIAL_USERNAME = "mert574";
+      # Public origin (served via the cloudflared tunnel at music.mert574.dev). Needed so
+      # CORS accepts the browser origin when digarr is reached over https; the Spotify/
+      # Deezer OAuth redirect URIs are derived from the tunnel's forwarded host anyway.
+      ALLOWED_ORIGIN = "https://music.mert574.dev";
     };
     environmentFiles = [ config.sops.secrets."digarr-env".path ];
     volumes = [ "digarr-data:/app/data" ];

@@ -32,6 +32,11 @@
         # --- mert574.dev: public, app-level auth only.
         "media.mert574.dev" = "http://192.168.178.110:8096";    # Jellyfin
         "requests.mert574.dev" = "http://192.168.178.110:5055"; # Jellyseerr
+        # digarr (music discovery). Exposed for Spotify/Deezer OAuth, which require an
+        # https redirect URI; digarr builds it from the x-forwarded-proto + host the
+        # tunnel sends. App-auth only (login, registration disabled) — NOT behind
+        # Cloudflare Access, since an edge SSO gate would break the OAuth callback.
+        "music.mert574.dev" = "http://192.168.178.110:3000";    # digarr
         "garage.mert574.dev" = "http://192.168.178.109:3900";   # Garage S3 API
         # Vaultwarden: its own auth guards it (do NOT add Cloudflare Access here —
         # the Access login page breaks the Bitwarden clients). ws rides the same port.
