@@ -1,0 +1,84 @@
+# OTel Collector: receives OTLP from the Pulse services, tail-samples traces to Tempo,
+# forwards logs to Loki. Values vendored from pulse-pager
+# deploy/observability/otel-collector/values.yaml.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pulse-otel-collector # fullnameOverride pins the service name
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2" # after Tempo/Loki (it exports to them)
+spec:
+  project: default
+  source:
+    repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
+    chart: opentelemetry-collector
+    targetRevision: 0.159.1
+    helm:
+      valuesObject:
+        fullnameOverride: pulse-otel-collector
+        mode: deployment
+        replicaCount: 1
+        image:
+          repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib
+        command:
+          name: otelcol-contrib
+        ports:
+          jaeger-compact: { enabled: false }
+          jaeger-thrift: { enabled: false }
+          jaeger-grpc: { enabled: false }
+          zipkin: { enabled: false }
+        config:
+          receivers:
+            jaeger: null
+            zipkin: null
+            prometheus: null
+            otlp:
+              protocols:
+                grpc:
+                  endpoint: 0.0.0.0:4317
+                http:
+                  endpoint: 0.0.0.0:4318
+          processors:
+            tail_sampling:
+              decision_wait: 10s
+              policies:
+                - name: errors
+                  type: status_code
+                  status_code:
+                    status_codes: [ERROR]
+                - name: slow
+                  type: latency
+                  latency:
+                    threshold_ms: 1000
+                - name: sample-rest
+                  type: probabilistic
+                  probabilistic:
+                    sampling_percentage: 10
+          exporters:
+            debug: null
+            otlp/tempo:
+              endpoint: pulse-tempo.pulse-system.svc.cluster.local:4317
+              tls:
+                insecure: true
+            otlphttp/loki:
+              endpoint: http://pulse-loki.pulse-system.svc.cluster.local:3100/otlp
+              tls:
+                insecure: true
+          service:
+            pipelines:
+              metrics: null
+              traces:
+                receivers: [otlp]
+                processors: [memory_limiter, tail_sampling, batch]
+                exporters: [otlp/tempo]
+              logs:
+                receivers: [otlp]
+                processors: [memory_limiter, batch]
+                exporters: [otlphttp/loki]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: pulse-system
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]

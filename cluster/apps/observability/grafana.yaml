@@ -1,0 +1,96 @@
+# Grafana: provisioned datasources (Tempo/Prometheus/Loki with trace<->log<->metric
+# links) and the pulse dashboards from the pulse-dashboards ConfigMap. ClusterIP —
+# reach it with `kubectl -n pulse-system port-forward svc/pulse-grafana 3000:80`.
+# Values vendored from pulse-pager deploy/observability/grafana/values.yaml (PVC trimmed).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pulse-grafana # release name -> service pulse-grafana
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2" # after its datasources exist
+spec:
+  project: default
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: grafana
+    targetRevision: 10.5.15
+    helm:
+      valuesObject:
+        image:
+          tag: "13.1.0"
+        service:
+          type: ClusterIP
+        persistence:
+          enabled: true
+          size: 2Gi
+        grafana.ini:
+          dashboards:
+            default_home_dashboard_path: /var/lib/grafana/dashboards/pulse/pulse-overview.json
+          users:
+            default_theme: gloom
+        dashboardProviders:
+          dashboardproviders.yaml:
+            apiVersion: 1
+            providers:
+              - name: pulse
+                type: file
+                disableDeletion: false
+                allowUiUpdates: true
+                options:
+                  path: /var/lib/grafana/dashboards/pulse
+        dashboardsConfigMaps:
+          pulse: pulse-dashboards
+        datasources:
+          datasources.yaml:
+            apiVersion: 1
+            datasources:
+              - name: Tempo
+                type: tempo
+                uid: tempo
+                access: proxy
+                url: http://pulse-tempo.pulse-system.svc.cluster.local:3200
+                isDefault: true
+                jsonData:
+                  serviceMap:
+                    datasourceUid: prometheus
+                  nodeGraph:
+                    enabled: true
+                  tracesToLogsV2:
+                    datasourceUid: loki
+                    spanStartTimeShift: "-5m"
+                    spanEndTimeShift: "5m"
+                    filterByTraceID: true
+                    tags:
+                      - key: service.name
+                        value: service_name
+              - name: Prometheus
+                type: prometheus
+                uid: prometheus
+                access: proxy
+                url: http://pulse-prometheus-server.pulse-system.svc.cluster.local
+                isDefault: false
+                jsonData:
+                  exemplarTraceIdDestinations:
+                    - name: trace_id
+                      datasourceUid: tempo
+              - name: Loki
+                type: loki
+                uid: loki
+                access: proxy
+                url: http://pulse-loki.pulse-system.svc.cluster.local:3100
+                isDefault: false
+                jsonData:
+                  derivedFields:
+                    - name: trace_id
+                      matcherType: label
+                      matcherRegex: trace_id
+                      datasourceUid: tempo
+                      url: "${__value.raw}"
+                      urlDisplayLabel: "View trace"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: pulse-system
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]

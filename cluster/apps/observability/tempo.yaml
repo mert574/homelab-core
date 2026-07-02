@@ -1,0 +1,56 @@
+# Tempo (single binary): receives OTLP from the collector, stores traces on a PVC, runs
+# the metrics-generator (local-blocks + service-graphs, remote-written to Prometheus).
+# Values vendored from pulse-pager deploy/observability/tempo/values.yaml (PVC trimmed).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pulse-tempo # release name -> service pulse-tempo
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1" # after Prometheus, before the collector
+spec:
+  project: default
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: tempo
+    targetRevision: 1.24.4
+    helm:
+      valuesObject:
+        tempo:
+          storage:
+            trace:
+              backend: local
+              local:
+                path: /var/tempo/traces
+              wal:
+                path: /var/tempo/wal
+          metricsGenerator:
+            enabled: true
+            processor:
+              local_blocks:
+                flush_to_storage: true
+              service_graphs:
+                peer_attributes: [peer.service, server.address, db.name, db.system]
+            storage:
+              path: /var/tempo/generator/wal
+              remote_write:
+                - url: http://pulse-prometheus-server.pulse-system.svc.cluster.local/api/v1/write
+                  send_exemplars: true
+            traces_storage:
+              path: /var/tempo/generator/traces
+            registry:
+              external_labels:
+                source: tempo
+          overrides:
+            defaults:
+              metrics_generator:
+                processors: [local-blocks, service-graphs]
+        persistence:
+          enabled: true
+          size: 4Gi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: pulse-system
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]
