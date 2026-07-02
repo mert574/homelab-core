@@ -17,4 +17,8 @@ spec:
     namespace: arc-systems
   syncPolicy:
     automated: { prune: true, selfHeal: true }
-    syncOptions: [CreateNamespace=true]
+    # ServerSideApply: the actions.github.com CRDs (autoscalingrunnersets,
+    # ephemeralrunners, …) exceed kubectl's 256KiB client-side last-applied
+    # annotation limit, so client-side apply rejects them and the controller
+    # crashloops on the missing CRDs. Server-side apply has no such limit.
+    syncOptions: [CreateNamespace=true, ServerSideApply=true]
