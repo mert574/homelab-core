@@ -96,6 +96,14 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: pulse-system
+  # The API server injects apiVersion/kind/creationTimestamp into a StatefulSet's
+  # volumeClaimTemplates (immutable after creation), which the rendered manifest lacks
+  # — otherwise the alertmanager StatefulSet shows perpetual OutOfSync.
+  ignoreDifferences:
+    - group: apps
+      kind: StatefulSet
+      jsonPointers:
+        - /spec/volumeClaimTemplates
   syncPolicy:
     automated: { prune: true, selfHeal: true }
     syncOptions: [CreateNamespace=true, ServerSideApply=true]

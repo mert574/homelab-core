@@ -23,6 +23,14 @@ spec:
           persistence:
             enabled: true
             size: 4Gi
+        # SingleBinary mode: zero the SimpleScalable targets, which the chart still
+        # defaults to >0 (the validate template rejects both being non-zero).
+        read:
+          replicas: 0
+        write:
+          replicas: 0
+        backend:
+          replicas: 0
         chunksCache:
           enabled: false
         resultsCache:
