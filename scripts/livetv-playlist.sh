@@ -55,6 +55,7 @@ epgid(){ # $1=display name  $2=group -> id (or empty)
 
 # pick FIRST stream for a channel-name regex; prefer a non-geo-blocked feed.
 # emits the EXTINF (with remapped tvg-id + given group) and its URL. $1=regex $2=group $3..=files
+CHNO=0  # running channel number; see emitext()
 emit(){ local pat="$1" grp="$2"; shift 2
   local block ext url name eid
   block="$(awk -v p="$pat" 'BEGIN{IGNORECASE=1}
@@ -68,6 +69,16 @@ emit(){ local pat="$1" grp="$2"; shift 2
   name="${ext#*,}"; eid="$(epgid "$name" "$grp")"
   # set tvg-id to the epg id (blank if none), and the group tag
   ext="$(printf '%s' "$ext" | sed -E "s/tvg-id=\"[^\"]*\"/tvg-id=\"${eid//\//\\/}\"/; s/group-title=\"[^\"]*\"/group-title=\"$grp\"/")"
+  emitext "$ext" "$url"
+}
+
+# Emit an EXTINF+URL with an explicit sequential tvg-chno. Jellyfin's M3U tuner scrapes
+# a channel number out of the stream URL when none is given (e.g. ITV1's
+# .../stream/channelid/95929545 showed up as "95929545 ITV1"); an explicit tvg-chno
+# takes precedence, so every channel gets a tidy sequential number instead. $1=extinf $2=url
+emitext(){ local ext="$1" url="$2"
+  CHNO=$((CHNO+1))
+  ext="$(printf '%s' "$ext" | sed -E "s/tvg-chno=\"[^\"]*\" ?//; s/^#EXTINF:-1 /#EXTINF:-1 tvg-chno=\"$CHNO\" /")"
   printf '%s\n%s\n' "$ext" "$url"
 }
 
@@ -88,7 +99,7 @@ EN=("GB News" "Al Jazeera English" "France 24 English" "DW English" "Euronews En
   # Channels iptv-org does not carry: add explicit stream + guide id. Show TV is
   # geo-locked to Turkey (403 from here) like the other TR nationals — plays via the
   # Turkey VPN route if/when that is set up; the guide (SHOW.TV.tr) works regardless.
-  printf '#EXTINF:-1 tvg-id="SHOW.TV.tr" group-title="TR",Show TV\nhttps://ciner-live.daioncdn.net/showtv/showtv.m3u8?app=web&ce=3\n'
+  emitext '#EXTINF:-1 tvg-id="SHOW.TV.tr" group-title="TR",Show TV' 'https://ciner-live.daioncdn.net/showtv/showtv.m3u8?app=web&ce=3'
 } | tr -d '\r' > "$TMP/out.m3u"
 
 n=$(grep -c '^#EXTINF' "$TMP/out.m3u")
