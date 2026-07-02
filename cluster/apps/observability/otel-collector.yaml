@@ -58,11 +58,11 @@ spec:
           exporters:
             debug: null
             otlp/tempo:
-              endpoint: pulse-tempo.pulse-system.svc.cluster.local:4317
+              endpoint: pulse-tempo.observability.svc.cluster.local:4317
               tls:
                 insecure: true
             otlphttp/loki:
-              endpoint: http://pulse-loki.pulse-system.svc.cluster.local:3100/otlp
+              endpoint: http://pulse-loki.observability.svc.cluster.local:3100/otlp
               tls:
                 insecure: true
           service:
@@ -78,7 +78,7 @@ spec:
                 exporters: [otlphttp/loki]
   destination:
     server: https://kubernetes.default.svc
-    namespace: pulse-system
+    namespace: observability
   syncPolicy:
     automated: { prune: true, selfHeal: true }
     syncOptions: [CreateNamespace=true, ServerSideApply=true]

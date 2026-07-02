@@ -34,7 +34,7 @@ spec:
             storage:
               path: /var/tempo/generator/wal
               remote_write:
-                - url: http://pulse-prometheus-server.pulse-system.svc.cluster.local/api/v1/write
+                - url: http://pulse-prometheus-server.observability.svc.cluster.local/api/v1/write
                   send_exemplars: true
             traces_storage:
               path: /var/tempo/generator/traces
@@ -50,7 +50,7 @@ spec:
           size: 4Gi
   destination:
     server: https://kubernetes.default.svc
-    namespace: pulse-system
+    namespace: observability
   syncPolicy:
     automated: { prune: true, selfHeal: true }
     syncOptions: [CreateNamespace=true, ServerSideApply=true]

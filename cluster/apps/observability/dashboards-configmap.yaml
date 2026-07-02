@@ -284,4 +284,4 @@ data:
 kind: ConfigMap
 metadata:
   name: pulse-dashboards
-  namespace: pulse-system
+  namespace: observability

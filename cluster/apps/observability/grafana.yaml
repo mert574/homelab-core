@@ -1,6 +1,6 @@
 # Grafana: provisioned datasources (Tempo/Prometheus/Loki with trace<->log<->metric
 # links) and the pulse dashboards from the pulse-dashboards ConfigMap. ClusterIP —
-# reach it with `kubectl -n pulse-system port-forward svc/pulse-grafana 3000:80`.
+# reach it with `kubectl -n observability port-forward svc/pulse-grafana 3000:80`.
 # Values vendored from pulse-pager deploy/observability/grafana/values.yaml (PVC trimmed).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -49,7 +49,7 @@ spec:
                 type: tempo
                 uid: tempo
                 access: proxy
-                url: http://pulse-tempo.pulse-system.svc.cluster.local:3200
+                url: http://pulse-tempo.observability.svc.cluster.local:3200
                 isDefault: true
                 jsonData:
                   serviceMap:
@@ -68,7 +68,7 @@ spec:
                 type: prometheus
                 uid: prometheus
                 access: proxy
-                url: http://pulse-prometheus-server.pulse-system.svc.cluster.local
+                url: http://pulse-prometheus-server.observability.svc.cluster.local
                 isDefault: false
                 jsonData:
                   exemplarTraceIdDestinations:
@@ -78,7 +78,7 @@ spec:
                 type: loki
                 uid: loki
                 access: proxy
-                url: http://pulse-loki.pulse-system.svc.cluster.local:3100
+                url: http://pulse-loki.observability.svc.cluster.local:3100
                 isDefault: false
                 jsonData:
                   derivedFields:
@@ -90,7 +90,7 @@ spec:
                       urlDisplayLabel: "View trace"
   destination:
     server: https://kubernetes.default.svc
-    namespace: pulse-system
+    namespace: observability
   syncPolicy:
     automated: { prune: true, selfHeal: true }
     syncOptions: [CreateNamespace=true, ServerSideApply=true]

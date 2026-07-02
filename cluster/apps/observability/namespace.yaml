@@ -1,6 +1,6 @@
 # Observability stack (Prometheus, Grafana, Tempo, Loki, OTel Collector) lives in
-# pulse-system; the vendored Helm values reference *.pulse-system.svc.cluster.local.
+# observability; the vendored Helm values reference *.observability.svc.cluster.local.
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: pulse-system
+  name: observability
