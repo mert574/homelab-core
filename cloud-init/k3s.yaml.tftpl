@@ -10,6 +10,20 @@ users:
 package_update: true
 packages:
   - curl
+
+# 4 GiB swap for headroom on the 8 GiB node. k3s's kubelet refuses to start with
+# swap present unless fail-swap-on is off, so config.yaml (written below) disables it.
+swap:
+  filename: /swapfile
+  size: 4294967296
+  maxsize: 4294967296
+
+write_files:
+  # kubelet won't boot with swap enabled unless this is set (checked at startup).
+  - path: /etc/rancher/k3s/config.yaml
+    content: |
+      kubelet-arg:
+        - "fail-swap-on=false"
   # qemu-guest-agent: the VM enables the agent (tofu/k3s.tf) and cluster/bootstrap/
   # up.sh fetches the kubeconfig via `qm guest exec`, which needs it. The Debian
   # genericcloud image doesn't ship it, so install + start it here.
