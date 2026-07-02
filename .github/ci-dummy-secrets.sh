@@ -14,13 +14,13 @@ export SOPS_AGE_KEY_FILE="$keydir/age.key"
 
 # dotenv bundle: every key the sops hosts read from homelab.enc.env
 printf '%s\n' \
-  PULSE_DB_PASSWORD=x DIGARR_DB_PASSWORD=x \
+  PULSE_DB_PASSWORD=x \
   GARAGE_RPC_SECRET=x GARAGE_ADMIN_TOKEN=x \
   NIX_CACHE_S3_ACCESS_KEY=x NIX_CACHE_S3_SECRET_KEY=x > "$keydir/h.env"
 sops -e --input-type dotenv --output-type dotenv "$keydir/h.env" > secrets/homelab.enc.env
 
 # whole-file binary secrets
-for f in cloudflared.creds mullvad.wg digarr.env; do
+for f in cloudflared.creds mullvad.wg; do
   printf x | sops -e --input-type binary --output-type binary /dev/stdin > "secrets/$f.enc"
 done
 

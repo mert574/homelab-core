@@ -131,9 +131,6 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
       won't start, check that first.
 - [ ] DLNA is `services.minidlna` (declarative), so the TV finds "Home Media" on the
       LAN with no manual step
-- [ ] **digarr**: fill `secrets/digarr.env.enc` from digarr's `.env.example`
-      (DATABASE_URL -> the postgres LXC, AI provider key, initial creds, LIDARR_API_KEY);
-      set the same `DIGARR_DB_PASSWORD` in the homelab env
 - [ ] Register **Byparr** in Prowlarr as a FlareSolverr proxy (`http://localhost:8191`)
       and tag the indexers that need it
 - [ ] **SuggestArr** web UI: set the TMDb key + Jellyfin and Jellyseerr URLs/keys
@@ -182,8 +179,7 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
   against the code; I assumed them.
 - Pin image tags (currently `:main`, a moving tag) or add Argo Image Updater.
 - Media stack is unverified: the `vpn-confinement` option names, the qbittorrent/
-  lidarr/minidlna modules, podman-in-LXC for digarr, and digarr's exact env (taken
-  from a repo summary, not its `.env.example`).
+  minidlna module, and podman-in-LXC for the containerised apps.
 
 _Vaultwarden (CT 112) has been deployed and verified end-to-end — service +
 secret plumbing, `/alive` on LAN and public, and the web vault at

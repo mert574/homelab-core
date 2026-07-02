@@ -31,7 +31,7 @@ jobs:
       - name: placeholder secret files
         run: |
           touch secrets/homelab.enc.env secrets/mullvad.wg.enc \
-                secrets/digarr.env.enc secrets/cloudflared.creds.enc
+                secrets/cloudflared.creds.enc
           git add -A
       - run: nix flake check . --no-build
 
@@ -99,7 +99,7 @@ jobs:
       - name: placeholder secret files
         run: |
           touch secrets/homelab.enc.env secrets/mullvad.wg.enc \
-                secrets/digarr.env.enc secrets/cloudflared.creds.enc
+                secrets/cloudflared.creds.enc
           git add -A
       - name: sign + push host closures to Garage
         env:

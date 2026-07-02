@@ -192,7 +192,7 @@ The ordered, compiled checklist for standing this up lives in
 - [x] cloudflared: config-managed tunnel (Pulse via Gateway, Jellyfin + Jellyseerr)
 - [x] Pulse: image pipeline (pulse repo) + manifests in `cluster/apps/pulse/` (SPA from Garage)
 - [x] CI runners: ARC scale-to-zero in `cluster/apps/arc/`
-- [x] Media box: Jellyfin + minidlna, Sonarr/Radarr/Lidarr/Bazarr, Prowlarr + Byparr, qBittorrent (Mullvad), digarr/Jellyseerr/SuggestArr discovery, QuickSync
+- [x] Media box: Jellyfin + minidlna, Sonarr/Radarr/Bazarr, Prowlarr + Byparr, qBittorrent (Mullvad), Jellyseerr/SuggestArr discovery, QuickSync
 - [x] ccflare: multi-account Anthropic/OpenAI proxy + dashboard, Bun service pinned to a commit (`nix/hosts/ccflare.nix`)
 - [x] Vaultwarden: password vault (`services.vaultwarden`, SQLite) in its own LXC, public at `pw.mert574.dev` with its own auth (`nix/hosts/vaultwarden.nix`)
 - [x] Validation: `make validate` + CI (tofu, `nix flake check`, kubeconform, shellcheck, actionlint)

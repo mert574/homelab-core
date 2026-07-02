@@ -32,16 +32,15 @@
       host  all all 192.168.178.0/24 scram-sha-256
     '';
 
-    ensureDatabases = [ "pulse" "digarr" ];
+    ensureDatabases = [ "pulse" ];
     ensureUsers = [
       { name = "pulse"; ensureDBOwnership = true; }
-      { name = "digarr"; ensureDBOwnership = true; }
     ];
   };
 
   networking.firewall.allowedTCPPorts = [ 5432 ];
 
-  # ensureUsers can't set a password; set the pulse/digarr role passwords from
+  # ensureUsers can't set a password; set the pulse role password from
   # the sops env. Runs as root (to read the root-only secret) and shells out to
   # psql via runuser so local peer auth still sees the postgres user. The value
   # is passed as a psql variable and interpolated with :'pw', which quotes and
@@ -67,8 +66,7 @@
         printf "ALTER ROLE %s WITH PASSWORD :'pw';\n" "$role" \
           | "$runuser" -u postgres -- "$psql" -v pw="$val" -f -
       }
-      set_pw pulse  PULSE_DB_PASSWORD
-      set_pw digarr DIGARR_DB_PASSWORD
+      set_pw pulse PULSE_DB_PASSWORD
     '';
   };
 }
