@@ -5,10 +5,17 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# 1. Gateway API CRDs (Cilium needs them present before gatewayAPI is enabled)
-gw_ver="$(curl -fsSL https://api.github.com/repos/kubernetes-sigs/gateway-api/releases/latest \
-  | grep -oE '"tag_name": *"[^"]+"' | grep -oE 'v[0-9.]+')"
-kubectl apply -f "https://github.com/kubernetes-sigs/gateway-api/releases/download/${gw_ver}/standard-install.yaml"
+# 1. Gateway API CRDs (Cilium needs them present before gatewayAPI is enabled).
+# Pin to the exact version this Cilium supports, from the EXPERIMENTAL channel:
+# Cilium's Gateway controller indexes TLSRoute at gateway.networking.k8s.io/
+# v1alpha2, which the standard channel omits entirely, and which newer gateway-api
+# releases (>=1.5) no longer serve. Either mistake crashloops the cilium-operator
+# ("no matches for kind TLSRoute in version …/v1alpha2"). v1.4.1 = Cilium 1.19's
+# supported version. Bump this in lockstep with the Cilium chart.
+gw_ver="v1.4.1"
+# --server-side: the httproutes CRD's schema exceeds kubectl's client-side
+# last-applied-configuration annotation limit (>256KiB).
+kubectl apply --server-side -f "https://github.com/kubernetes-sigs/gateway-api/releases/download/${gw_ver}/experimental-install.yaml"
 
 # 2. Cilium: CNI + kube-proxy replacement + LB IPAM + Gateway API + Hubble.
 # The cluster sits NotReady until this lands.
