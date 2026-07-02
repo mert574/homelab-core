@@ -15,11 +15,17 @@ spec:
     targetRevision: 0.14.2
     helm:
       valuesObject:
-        githubConfigUrl: "https://github.com/mert574/pulse"
+        githubConfigUrl: "https://github.com/mert574/pulse-pager"
         githubConfigSecret: arc-github # pre-created from the PAT (see README)
         runnerScaleSetName: homelab
         minRunners: 0
         maxRunners: 3
+        # The chart discovers the controller's ServiceAccount via `lookup`, which
+        # returns empty during Argo's `helm template` (no live cluster at render
+        # time) and fails the manager_role_binding template. Pin it explicitly.
+        controllerServiceAccount:
+          name: arc-controller-gha-rs-controller
+          namespace: arc-systems
   destination:
     server: https://kubernetes.default.svc
     namespace: arc-runners
