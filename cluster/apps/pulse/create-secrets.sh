@@ -21,9 +21,15 @@ kubectl -n pulse create secret docker-registry ghcr \
   --docker-password="${GIT_HTTP_TOKEN}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-# the whole Pulse env (its DSN already points at our postgres LXC + redis service)
+# the whole Pulse env (its DSN already points at our postgres LXC + redis service).
+# kubectl --from-env-file takes each value literally and does NOT strip dotenv
+# quotes, so a quoted value like PULSE_SMTP_FROM="Pulse Pager <noreply@…>" would
+# reach the app with the quotes embedded (Resend then rejects MAIL FROM as 501 bad
+# syntax). Strip one layer of surrounding matched quotes so values arrive clean.
 env_plain="$(mktemp)"; trap 'rm -f "$env_plain"' EXIT
-sops -d --input-type dotenv --output-type dotenv "$REPO_ROOT/secrets/pulse.env.enc" > "$env_plain"
+sops -d --input-type dotenv --output-type dotenv "$REPO_ROOT/secrets/pulse.env.enc" \
+  | sed -E 's/^([A-Za-z_][A-Za-z0-9_]*)="(.*)"$/\1=\2/; s/^([A-Za-z_][A-Za-z0-9_]*)='"'"'(.*)'"'"'$/\1=\2/' \
+  > "$env_plain"
 kubectl -n pulse create secret generic pulse-secrets --from-env-file="$env_plain" \
   --dry-run=client -o yaml | kubectl apply -f -
 
