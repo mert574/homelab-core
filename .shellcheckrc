@@ -1,0 +1,4 @@
+# Silence info-level notes about idioms we mean to use, so they don't fail CI:
+#   SC2015 - `A && B || true` guards where the `|| true` is intentional
+#   SC2018/SC2019 - `tr a-z A-Z` on ASCII (we don't need the [:upper:] locale form)
+disable=SC2015,SC2018,SC2019
