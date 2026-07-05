@@ -51,9 +51,21 @@ ensure_site nix-cache nix-cache.garage.internal
 ensure_site pulse-app app.pulsepager.com
 ensure_site pulse-docs pulsepager.com
 
+# Personal site (blog + portfolio, repo mert574/blog). Served at the apex; add a
+# second global alias so www hits the same bucket. cloudflared routes both here.
+ensure_site mert574.dev mert574.dev
+g bucket alias mert574.dev www.mert574.dev >/dev/null 2>&1 || true
+
 # CI write key, imported from sops so it survives rebuilds and matches the GitHub
 # secret the push job uses. Read stays anonymous over the web port.
 kid="${NIX_CACHE_S3_ACCESS_KEY:?not set — expected from garage-secrets.service EnvironmentFile}"
 ksec="${NIX_CACHE_S3_SECRET_KEY:?not set — expected from garage-secrets.service EnvironmentFile}"
 grep -q "$kid" <<<"$(g key list)" || g key import -n nix-cache "$kid" "$ksec" --yes
 g bucket allow --read --write nix-cache --key nix-cache
+
+# Blog CI write key, same import-from-sops story as nix-cache above. The blog repo
+# (mert574/blog) pushes the built site with this key; read stays anonymous.
+bkid="${BLOG_S3_ACCESS_KEY:?not set, expected from garage-secrets.service EnvironmentFile}"
+bksec="${BLOG_S3_SECRET_KEY:?not set, expected from garage-secrets.service EnvironmentFile}"
+grep -q "$bkid" <<<"$(g key list)" || g key import -n blog "$bkid" "$bksec" --yes
+g bucket allow --read --write mert574.dev --key blog

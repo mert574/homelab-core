@@ -1,0 +1,37 @@
+# A second runner scale set, registered to the blog repo (mert574/blog). A
+# gha-runner-scale-set binds to one repo, and mert574 is a personal account (no
+# org-level runner groups), so the `homelab` set above can't serve this repo —
+# hence its own set. The blog's build+push workflow uses `runs-on: homelab-blog`.
+# Reuses the arc-github PAT secret; that PAT must have access to mert574/blog.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: arc-blog-runner-set
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1" # after the controller (CRDs)
+spec:
+  project: default
+  source:
+    repoURL: ghcr.io/actions/actions-runner-controller-charts
+    chart: gha-runner-scale-set
+    targetRevision: 0.14.2
+    helm:
+      valuesObject:
+        githubConfigUrl: "https://github.com/mert574/blog"
+        githubConfigSecret: arc-github # same PAT as the pulse runner set
+        runnerScaleSetName: homelab-blog
+        minRunners: 0
+        maxRunners: 2
+        # The chart discovers the controller's ServiceAccount via `lookup`, which
+        # returns empty during Argo's `helm template` (no live cluster at render
+        # time) and fails the manager_role_binding template. Pin it explicitly.
+        controllerServiceAccount:
+          name: arc-controller-gha-rs-controller
+          namespace: arc-systems
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: arc-runners
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions: [CreateNamespace=true]

@@ -30,6 +30,12 @@
         "pulsepager.com" = "http://192.168.178.200:80";
 
         # --- mert574.dev: public, app-level auth only.
+        # Personal site (blog + portfolio): static bucket served straight off
+        # Garage's web port; Garage matches the Host to the bucket alias, so apex
+        # + www hit the same bucket. The web port is public static files only (no
+        # auth), unlike the S3 API port below.
+        "mert574.dev" = "http://192.168.178.109:3902";
+        "www.mert574.dev" = "http://192.168.178.109:3902";
         "media.mert574.dev" = "http://192.168.178.110:8096";    # Jellyfin
         "requests.mert574.dev" = "http://192.168.178.110:5055"; # Jellyseerr
         "garage.mert574.dev" = "http://192.168.178.109:3900";   # Garage S3 API

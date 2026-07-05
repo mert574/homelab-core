@@ -5,7 +5,12 @@ when idle, so no always-on runner box. Runner pods reach Garage on the LAN like
 any pod. A small always-on listener long-polls GitHub (no inbound webhook).
 
 - `controller.yaml` - the ARC controller (arc-systems)
-- `runner-set.yaml` - the scale set for the pulse repo (arc-runners, minRunners 0)
+- `runner-set.yaml` - the scale set for the pulse repo (`runs-on: homelab`)
+- `blog-runner-set.yaml` - the scale set for the blog repo (`runs-on: homelab-blog`)
+
+A scale set binds to one repo and mert574 is a personal account, so each repo
+that needs the homelab runners gets its own set. Both reuse the `arc-github` PAT
+secret below, so that PAT must have access to every repo listed here.
 
 ## One-time secret (run with the env sourced)
 

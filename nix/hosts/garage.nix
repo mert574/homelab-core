@@ -8,9 +8,9 @@
 
   # sops-nix can't extract individual keys from a dotenv file — it writes the
   # *entire* decrypted env to every secret path (see postgres.nix). So keep the
-  # env as one root-only secret and pull garage's four values out into an
+  # env as one root-only secret and pull garage's values out into an
   # EnvironmentFile below (garage reads GARAGE_RPC_SECRET / GARAGE_ADMIN_TOKEN
-  # from the environment; the CI S3 key/secret feed garage-setup.sh).
+  # from the environment; the nix-cache and blog CI S3 keys feed garage-setup.sh).
   sops.secrets."homelab-env" = { };  # -> /run/secrets/homelab-env, root:root 0400
 
   services.garage = {
@@ -73,7 +73,7 @@
       : > /run/garage/env.tmp
       while IFS= read -r line; do
         case "$line" in
-          GARAGE_RPC_SECRET=*|GARAGE_ADMIN_TOKEN=*|NIX_CACHE_S3_ACCESS_KEY=*|NIX_CACHE_S3_SECRET_KEY=*)
+          GARAGE_RPC_SECRET=*|GARAGE_ADMIN_TOKEN=*|NIX_CACHE_S3_ACCESS_KEY=*|NIX_CACHE_S3_SECRET_KEY=*|BLOG_S3_ACCESS_KEY=*|BLOG_S3_SECRET_KEY=*)
             key=''${line%%=*}; val=''${line#*=}
             val=''${val%\"}; val=''${val#\"}   # strip the dotenv KEY="value" quotes
             printf '%s=%s\n' "$key" "$val" >> /run/garage/env.tmp ;;

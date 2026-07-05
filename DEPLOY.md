@@ -68,6 +68,18 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
     as GitHub secrets (same values: garage imports them, CI pushes with them)
   - once the in-cluster runner exists, set repo variable `HOMELAB_RUNNER=true` to
     activate the `nix-cache-push` job
+- [ ] **Personal site (blog + portfolio, repo `mert574/blog`)**: bucket, aliases,
+      website and the CI write key are all in code (`scripts/garage-setup.sh`,
+      served at `mert574.dev` + `www`). Only the secret values and the runner are
+      yours:
+  - fill `BLOG_S3_ACCESS_KEY` / `BLOG_S3_SECRET_KEY` in the sops env AND as GitHub
+    secrets on `mert574/blog` (same values: garage imports the key `blog`, CI pushes
+    with them). id: 26 chars starting `GK`, secret: 64 hex (`openssl rand -hex 32`)
+  - DNS route for `mert574.dev` + `www.mert574.dev` (in the cloudflared loop below)
+  - the blog runner (`cluster/apps/arc/blog-runner-set.yaml`, `runs-on: homelab-blog`)
+    reuses the `arc-github` PAT, so that PAT must have access to `mert574/blog`
+  - the build+push workflow (`astro build` -> `aws s3 sync` to the LAN S3 endpoint
+    `http://192.168.178.109:3900`) lives in the `mert574/blog` repo, not here
 - [ ] **cloudflared**: `cloudflared tunnel create homelab` -> save the creds JSON as
       `secrets/cloudflared.creds.enc`; put the tunnel UUID, the Gateway LB IP, and your
       hostnames in `nix/hosts/cloudflared.nix`. Ingress is locally-managed there; the
@@ -75,10 +87,11 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
       tunnel. One tunnel serves both zones. Add a route per hostname (must be inside a
       zone whose nameservers point at Cloudflare):
   - `pulsepager.com`, `app.pulsepager.com`
-  - `mert574.dev`: `media`, `requests`, `garage`, `proxmox`, `ccflare`, `pw`
+  - `mert574.dev`: apex + `www` (personal site), `media`, `requests`, `garage`,
+    `proxmox`, `ccflare`, `pw`
   - ```
-    for h in media.mert574.dev requests.mert574.dev garage.mert574.dev \
-             proxmox.mert574.dev ccflare.mert574.dev pw.mert574.dev; do
+    for h in mert574.dev www.mert574.dev media.mert574.dev requests.mert574.dev \
+             garage.mert574.dev proxmox.mert574.dev ccflare.mert574.dev pw.mert574.dev; do
       cloudflared tunnel route dns homelab "$h"
     done
     ```
