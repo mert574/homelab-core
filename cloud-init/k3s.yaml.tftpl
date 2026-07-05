@@ -10,6 +10,10 @@ users:
 package_update: true
 packages:
   - curl
+  # qemu-guest-agent: the VM enables the agent (tofu/k3s.tf) and cluster/bootstrap/
+  # up.sh fetches the kubeconfig via `qm guest exec`, which needs it. The Debian
+  # genericcloud image doesn't ship it, so install + start it here (enabled in runcmd).
+  - qemu-guest-agent
 
 # 4 GiB swap for headroom on the 8 GiB node. k3s's kubelet refuses to start with
 # swap present unless fail-swap-on is off, so config.yaml (written below) disables it.
@@ -24,10 +28,6 @@ write_files:
     content: |
       kubelet-arg:
         - "fail-swap-on=false"
-  # qemu-guest-agent: the VM enables the agent (tofu/k3s.tf) and cluster/bootstrap/
-  # up.sh fetches the kubeconfig via `qm guest exec`, which needs it. The Debian
-  # genericcloud image doesn't ship it, so install + start it here.
-  - qemu-guest-agent
 runcmd:
   - [ systemctl, enable, --now, qemu-guest-agent ]
   # Install k3s with its own networking turned off so Cilium can take over.

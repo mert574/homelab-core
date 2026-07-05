@@ -176,28 +176,3 @@ validate` + `fmt`, `nix flake check`, `kubeconform` against the cluster
 manifests (with the CRD catalog), `shellcheck`, and `actionlint`. CI runs the
 full set on every push (`.github/workflows/validate.yml`), including the Nix on a
 runner that has `nix`.
-
-## Status
-
-The ordered, compiled checklist for standing this up lives in
-[`DEPLOY.md`](DEPLOY.md). The boxes below track what's built.
-
-
-- [x] Bootstrap trust model: public repo + SOPS/age, `bootstrap/bootstrap.sh`
-- [x] Layer 2: OpenTofu defs for 11 guests (pihole, postgres, cloudflared, k3s, admin, ai, playground, playground-debian, garage, media, vaultwarden)
-- [x] NixOS hosts: base/dev/sops modules + admin, ai, playground, postgres, cloudflared, garage, media, ccflare, vaultwarden (`nix flake check` clean)
-- [x] Host network: isolated `vmbr1` bridge in `bootstrap/host-network/`
-- [x] Layer 3 foundation: Cilium + Argo CD + networking manifests (Gateway pinned `.200`)
-- [x] Garage: S3 + static website hosting (`nix/hosts/garage.nix`)
-- [x] cloudflared: config-managed tunnel (Pulse via Gateway, Jellyfin + Jellyseerr)
-- [x] Pulse: image pipeline (pulse repo) + manifests in `cluster/apps/pulse/` (SPA from Garage)
-- [x] CI runners: ARC scale-to-zero in `cluster/apps/arc/`
-- [x] Media box: Jellyfin + minidlna, Sonarr/Radarr/Bazarr, Prowlarr + Byparr, qBittorrent (Mullvad), Jellyseerr/SuggestArr discovery, QuickSync
-- [x] ccflare: multi-account Anthropic/OpenAI proxy + dashboard, Bun service pinned to a commit (`nix/hosts/ccflare.nix`)
-- [x] Vaultwarden: password vault (`services.vaultwarden`, SQLite) in its own LXC, public at `pw.mert574.dev` with its own auth (`nix/hosts/vaultwarden.nix`)
-- [x] Validation: `make validate` + CI (tofu, `nix flake check`, kubeconform, shellcheck, actionlint)
-- [ ] Layer 0-1: USB auto-install (`bootstrap/`, stubbed)
-- [ ] Asset push: a `web` CI job that builds + `s3 sync`s the SPA to Garage (not written)
-
-Deployment/go-live steps (set domain, fill secrets, run the bootstraps) live in
-[`DEPLOY.md`](DEPLOY.md), not here.

@@ -23,7 +23,7 @@ resource "proxmox_virtual_environment_container" "pihole" {
 
   disk {
     datastore_id = var.datastore
-    size         = 2 # pihole uses <1G; 2G is plenty
+    size         = 8 # the live disk was grown to 8G; LXC disks can't shrink, so 2 can never apply again
   }
 
   network_interface {
