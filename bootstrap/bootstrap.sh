@@ -154,8 +154,10 @@ ensure_templates() {
 }
 
 run_pipeline() {
-  # Load secrets as env vars (TF_VAR_* go straight into OpenTofu).
-  set -a; eval "$(sops --decrypt "$SECRETS_FILE")"; set +a
+  # Load secrets as env vars (TF_VAR_* go straight into OpenTofu). Safe dotenv
+  # parse (no eval; values like the SSH key have spaces).
+  # shellcheck source=/dev/null
+  . "$REPO_ROOT/scripts/load-env.sh"
 
   # Isolated vmbr1 bridge for the ai box (must exist before that container boots).
   bash "$REPO_ROOT/bootstrap/host-network/install.sh"

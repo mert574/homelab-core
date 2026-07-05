@@ -58,6 +58,14 @@ resource "proxmox_virtual_environment_vm" "k3s" {
   initialization {
     datastore_id = var.datastore
 
+    # Pi-hole as the node's resolver so pods can resolve the .internal names
+    # (CoreDNS forwards to the node's resolv.conf; pods never see /etc/hosts).
+    # No public fallback on purpose: pihole starts first on boot (tofu/pihole.tf),
+    # and a fallback would make .internal lookups flaky whenever it's picked.
+    dns {
+      servers = [split("/", var.pihole_ip)[0]]
+    }
+
     ip_config {
       ipv4 {
         address = var.k3s_ip
