@@ -62,6 +62,11 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: observability
+  # selfHeal off: the chart's loki.singleBinaryReplicas helper hardcodes 1
+  # replica unless using object storage with >1 replicas, so
+  # singleBinary.replicas: 0 above has no effect on the rendered manifest.
+  # With selfHeal on, Argo CD reverts a manual `kubectl scale --replicas=0`
+  # within seconds. Off, the app just sits OutOfSync while scaled down.
   syncPolicy:
-    automated: { prune: true, selfHeal: true }
+    automated: { prune: true, selfHeal: false }
     syncOptions: [CreateNamespace=true, ServerSideApply=true]
