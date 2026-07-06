@@ -34,9 +34,12 @@ spec:
           securityContext:
             allowPrivilegeEscalation: false
             capabilities: { drop: ["ALL"] }
+          # 1Gi OOMKilled the pod as soon as the AI piece's property (model
+          # dropdown) got touched -- installing @activepieces/piece-ai and
+          # spinning up execution sandboxes needs real headroom.
           resources:
-            requests: { cpu: 250m, memory: 512Mi }
-            limits: { memory: 1Gi }
+            requests: { cpu: 250m, memory: 768Mi }
+            limits: { memory: 2Gi }
 ---
 apiVersion: v1
 kind: Service

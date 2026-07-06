@@ -7,6 +7,24 @@
 # so we fetch + build it at a pinned commit in a oneshot (mirrors the garage-setup
 # pattern in garage.nix) and run `bun run start` as a long-lived service. The DB +
 # config are SQLite/JSON under /var/lib/ccflare, so a rebuild never loses accounts.
+#
+# Usage notes (learned wiring Activepieces up to it, see cluster/apps/activepieces):
+# - No auth needed, and no per-client API key exists -- ccflare ignores whatever
+#   Authorization/x-api-key header a client sends and always uses its own stored
+#   account credentials (`GET /api/accounts` to see what's registered).
+# - Native passthrough (`/v1/anthropic/*`, `/v1/openai/*`) forwards the client's
+#   auth header straight to the real upstream API instead of substituting one of
+#   ccflare's accounts -- useless unless the client happens to have its own real
+#   key. Fine for Claude Code CLI (built for this), not for pointing a random
+#   OpenAI-compatible app at it.
+# - What you actually want for that: the compat route
+#   `POST /v1/ccflare/openai/chat/completions`, OpenAI request/response schema,
+#   but `model` must be prefixed (`anthropic/<model-id>` -> prefers the
+#   `claude-code` accounts, `openai/<model-id>` -> prefers `codex`/`openai`).
+#   Bare model names 400. This is the one that actually load-balances across
+#   the registered accounts.
+# - Full reference: `docs/api-http.md` in the ccflare source tree on the box
+#   (`/var/lib/ccflare/src/docs/`).
 { config, pkgs, lib, ... }:
 let
   # Pin ccflare to a known-good commit; bump this to update. A rebuild re-fetches

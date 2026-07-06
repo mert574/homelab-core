@@ -15,6 +15,10 @@
 192.168.178.110  media.internal
 192.168.178.111  ccflare.internal
 192.168.178.112  vaultwarden.internal
-192.168.178.200  ap.internal
+192.168.178.200  ap.k3s.internal
 # ai is on the isolated 10.10.10.0/24 bridge (vmbr1), not routable from the LAN and
 # using public DNS, so it is intentionally left out here.
+# convention: every app running in k3s (not the VM itself) gets a *.k3s.internal
+# name at the shared Gateway LB IP (192.168.178.200); the in-cluster HTTPRoute
+# splits by Host header from there. k3s.internal itself (line above, the VM's
+# own node IP) is a different thing -- that's the node, not an app.

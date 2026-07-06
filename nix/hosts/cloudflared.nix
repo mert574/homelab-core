@@ -55,6 +55,9 @@
         # Activepieces: routes through the Cilium Gateway like pulse's hostnames;
         # the in-cluster HTTPRoute in cluster/apps/activepieces splits by host.
         "ap.mert574.dev" = "http://192.168.178.200:80";
+        # LibreChat: same pattern, the in-cluster HTTPRoute (namespace librechat)
+        # already maps this host, the tunnel just never had an entry for it.
+        "ai.mert574.dev" = "http://192.168.178.200:80";
       };
     };
   };

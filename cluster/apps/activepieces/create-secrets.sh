@@ -59,6 +59,6 @@ kill "$pf_pid" 2>/dev/null || true
 # mirror the admin password into Vaultwarden (best-effort; sops stays the
 # source of truth, so don't fail the whole bootstrap if Vaultwarden is down)
 "$REPO_ROOT/scripts/vaultwarden-upsert.sh" "Activepieces admin" "$admin_email" "$admin_password" \
-  "https://ap.internal" "https://ap.mert574.dev" || echo "activepieces: Vaultwarden mirror failed, continuing (sops still has it)"
+  "https://ap.k3s.internal" "https://ap.mert574.dev" || echo "activepieces: Vaultwarden mirror failed, continuing (sops still has it)"
 
 echo "activepieces: namespace + activepieces-secrets created, admin bootstrapped."
