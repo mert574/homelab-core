@@ -18,7 +18,7 @@ resource "proxmox_virtual_environment_container" "garage" {
   }
 
   memory {
-    dedicated = 1024
+    dedicated = 512
     swap      = 4096
   }
 

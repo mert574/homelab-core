@@ -30,6 +30,7 @@ resource "proxmox_virtual_environment_file" "k3s_cloud_init" {
     file_name = "k3s-cloud-init.yaml"
     data = templatefile("${path.module}/../cloud-init/k3s.yaml.tftpl", {
       ssh_public_key = var.ssh_public_key
+      mert_password  = var.ct_root_password
     })
   }
 }

@@ -18,7 +18,7 @@ resource "proxmox_virtual_environment_container" "pihole" {
   }
 
   memory {
-    dedicated = 512
+    dedicated = 384
   }
 
   disk {

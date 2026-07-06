@@ -5,8 +5,17 @@ users:
     groups: [sudo]
     sudo: ALL=(ALL) NOPASSWD:ALL
     shell: /bin/bash
+    lock_passwd: false
     ssh_authorized_keys:
       - ${ssh_public_key}
+
+# password login (Proxmox console access), on top of the SSH key above -- same
+# fallback password every other guest already gets via var.ct_root_password.
+chpasswd:
+  list: |
+    mert:${mert_password}
+  expire: false
+
 package_update: true
 packages:
   - curl
