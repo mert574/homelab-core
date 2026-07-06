@@ -9,6 +9,7 @@ spec:
       namespace: gateway
   hostnames:
     - "ap.mert574.dev"
+    - "ap.internal"
   rules:
     - backendRefs:
         - name: activepieces

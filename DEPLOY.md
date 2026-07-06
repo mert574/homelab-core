@@ -88,10 +88,11 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
       zone whose nameservers point at Cloudflare):
   - `pulsepager.com`, `app.pulsepager.com`
   - `mert574.dev`: apex + `www` (personal site), `media`, `requests`, `garage`,
-    `proxmox`, `ccflare`, `pw`
+    `proxmox`, `ccflare`, `pw`, `ap` (Activepieces)
   - ```
     for h in mert574.dev www.mert574.dev media.mert574.dev requests.mert574.dev \
-             garage.mert574.dev proxmox.mert574.dev ccflare.mert574.dev pw.mert574.dev; do
+             garage.mert574.dev proxmox.mert574.dev ccflare.mert574.dev pw.mert574.dev \
+             ap.mert574.dev; do
       cloudflared tunnel route dns homelab "$h"
     done
     ```
@@ -129,6 +130,18 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
 - [ ] Add the asset-push `web` job (`runs-on: homelab` -> build -> `aws s3 sync` to Garage);
       needs a Garage access key as repo secrets
 - [ ] Add `app.pulsepager.com` to the Cloudflare tunnel -> Gateway LB IP
+
+## 6b. Activepieces
+
+- [ ] Add `ACTIVEPIECES_DB_PASSWORD` to the sops env (§2) — same value goes into
+      `secrets/activepieces.env.enc`'s `AP_POSTGRES_PASSWORD`
+- [ ] Rebuild `postgres` (new `activepieces` db/role) and `cloudflared` (new
+      `ap.mert574.dev` route) after pulling the changes
+- [ ] `cluster/apps/activepieces/create-secrets.sh` (namespace + activepieces-secrets)
+- [ ] Add `ap.mert574.dev` to the Cloudflare tunnel -> Gateway LB IP (§4 above)
+- [ ] First login: create the admin account, then add ccflare as an AI connection
+      (Settings -> Connections, `http://ccflare.internal:8080`) — Activepieces
+      doesn't reliably support seeding this via env var, see `cluster/apps/activepieces/README.md`
 
 ## 7. Router (Fritz!Box)
 
