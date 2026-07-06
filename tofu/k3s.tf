@@ -83,6 +83,10 @@ resource "proxmox_virtual_environment_vm" "k3s" {
       }
     }
 
+    user_account {
+      keys = [var.ssh_public_key]
+    }
+
     user_data_file_id = proxmox_virtual_environment_file.k3s_cloud_init.id
   }
 
