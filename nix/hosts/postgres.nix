@@ -47,10 +47,15 @@
   # is passed as a psql variable and interpolated with :'pw', which quotes and
   # escapes it safely — so a password with quotes/backslashes can't break out of
   # the statement (the old '$(cat …)' form did, hence the boot failure).
+  # Must also wait on postgresql-setup.service (the unit NixOS uses to actually
+  # apply ensureUsers/ensureDatabases), not just postgresql.service being up --
+  # otherwise this can race setup and ALTER a role that doesn't exist yet on a
+  # fresh boot (seen on the first activepieces deploy: postgresql.service was
+  # "active" but the activepieces role hadn't been created yet).
   systemd.services.postgres-set-password = {
     description = "set role passwords from the sops secrets";
-    after = [ "postgresql.service" ];
-    requires = [ "postgresql.service" ];
+    after = [ "postgresql.service" "postgresql-setup.service" ];
+    requires = [ "postgresql.service" "postgresql-setup.service" ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig.Type = "oneshot";
     script = ''

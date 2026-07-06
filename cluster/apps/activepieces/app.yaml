@@ -12,8 +12,10 @@ spec:
     metadata:
       labels: { app: activepieces }
     spec:
+      # The image has no non-root user set up (root only, plus an unused `node`
+      # UID 1000 from its node base) -- upstream doesn't support running this
+      # non-root, so don't force runAsNonRoot here like the other in-cluster apps.
       securityContext:
-        runAsNonRoot: true
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: activepieces
