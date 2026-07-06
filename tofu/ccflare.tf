@@ -19,7 +19,7 @@ resource "proxmox_virtual_environment_container" "ccflare" {
   }
 
   memory {
-    dedicated = 1024
+    dedicated = 1536
     swap      = 2048
   }
 
