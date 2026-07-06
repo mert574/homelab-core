@@ -18,7 +18,6 @@ spec:
       valuesObject:
         fullnameOverride: pulse-otel-collector
         mode: deployment
-        replicaCount: 0 # scaled down to stop the observability stack; bump back to 1 to restore
         image:
           repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib
         command:
@@ -76,6 +75,19 @@ spec:
                 receivers: [otlp]
                 processors: [memory_limiter, batch]
                 exporters: [otlphttp/loki]
+    # The chart's deployment template only renders spec.replicas when
+    # replicaCount is truthy (`replicaCount: 0` is falsy in Go templates, so
+    # the field gets omitted and Kubernetes defaults it to 1). Patch the
+    # rendered Deployment directly to force it to 0.
+    kustomize:
+      patches:
+        - target:
+            kind: Deployment
+            name: pulse-otel-collector
+          patch: |-
+            - op: add
+              path: /spec/replicas
+              value: 0
   destination:
     server: https://kubernetes.default.svc
     namespace: observability

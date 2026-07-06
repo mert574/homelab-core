@@ -17,7 +17,7 @@ spec:
     targetRevision: 10.5.15
     helm:
       valuesObject:
-        replicaCount: 0 # scaled down to stop the observability stack; bump back to 1 to restore
+        replicas: 0 # scaled down to stop the observability stack; bump back to 1 to restore
         image:
           tag: "13.1.0"
         service:
