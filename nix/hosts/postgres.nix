@@ -32,9 +32,10 @@
       host  all all 192.168.178.0/24 scram-sha-256
     '';
 
-    ensureDatabases = [ "pulse" ];
+    ensureDatabases = [ "pulse" "activepieces" ];
     ensureUsers = [
       { name = "pulse"; ensureDBOwnership = true; }
+      { name = "activepieces"; ensureDBOwnership = true; }
     ];
   };
 
@@ -67,6 +68,7 @@
           | "$runuser" -u postgres -- "$psql" -v pw="$val" -f -
       }
       set_pw pulse PULSE_DB_PASSWORD
+      set_pw activepieces ACTIVEPIECES_DB_PASSWORD
     '';
   };
 }

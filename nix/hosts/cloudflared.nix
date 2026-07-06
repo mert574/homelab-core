@@ -52,6 +52,9 @@
           originRequest.noTLSVerify = true;
         };
         "ccflare.mert574.dev" = "http://192.168.178.111:8080";
+        # Activepieces: routes through the Cilium Gateway like pulse's hostnames;
+        # the in-cluster HTTPRoute in cluster/apps/activepieces splits by host.
+        "ap.mert574.dev" = "http://192.168.178.200:80";
       };
     };
   };

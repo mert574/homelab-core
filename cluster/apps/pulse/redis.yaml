@@ -1,6 +1,7 @@
-# In-cluster Redis: kv layer + event bus (Redis Streams). No persistence; losing
-# in-flight bus events on a restart is fine (at-least-once redelivery). Durable
-# state lives in Postgres, outside the cluster.
+# In-cluster Redis: kv layer + event bus (Redis Streams) for pulse, and also the
+# execution queue for activepieces (cluster/apps/activepieces), which needs
+# queued/in-flight runs to survive a restart -- hence the PVC below, even though
+# pulse's own use of this instance would have tolerated losing it.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,11 +18,13 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 999
+        runAsGroup: 1000
+        fsGroup: 1000
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: redis
-          image: redis:7-alpine
-          args: ["--save", "", "--appendonly", "no"]
+          image: redis:8-alpine
+          args: ["--appendonly", "yes"]
           ports:
             - containerPort: 6379
           securityContext:
@@ -35,7 +38,19 @@ spec:
             limits: { memory: 256Mi }
       volumes:
         - name: data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: redis-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data
+  namespace: pulse
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
 ---
 apiVersion: v1
 kind: Service
