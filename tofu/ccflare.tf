@@ -25,7 +25,7 @@ resource "proxmox_virtual_environment_container" "ccflare" {
 
   disk {
     datastore_id = var.datastore
-    size         = 8
+    size         = 12
   }
 
   network_interface {

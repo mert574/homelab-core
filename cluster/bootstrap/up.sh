@@ -26,11 +26,15 @@ command -v helm >/dev/null 2>&1 || curl -fsSL https://raw.githubusercontent.com/
 
 # 2. wait for k3s on the VM, then fetch + rewrite the kubeconfig
 echo "waiting for k3s on VM $K3S_VMID (its cloud-init installs it)..."
-until qm guest exec "$K3S_VMID" -- test -f /etc/rancher/k3s/k3s.yaml >/dev/null 2>&1; do sleep 5; done
 install -d -m 700 /root/.kube
-qm guest exec "$K3S_VMID" -- cat /etc/rancher/k3s/k3s.yaml \
-  | python3 -c 'import json,sys; print(json.load(sys.stdin)["out-data"], end="")' \
-  | sed "s#https://127.0.0.1:6443#https://${K3S_IP}:6443#" > "$KUBECONFIG"
+for _ in $(seq 1 60); do
+  raw="$(qm guest exec "$K3S_VMID" -- cat /etc/rancher/k3s/k3s.yaml 2>/dev/null \
+    | python3 -c 'import json,sys
+out = json.load(sys.stdin).get("out-data", "")
+print(out, end="") if "clusters:" in out else sys.exit(1)' 2>/dev/null)" && break
+  sleep 5
+done
+printf '%s' "$raw" | sed "s#https://127.0.0.1:6443#https://${K3S_IP}:6443#" > "$KUBECONFIG"
 chmod 600 "$KUBECONFIG"
 kubectl get nodes
 

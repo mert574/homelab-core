@@ -1,0 +1,9 @@
+[Unit]
+Description=homelab-core: pull + tofu apply (unattended reconcile)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/homelab-core
+ExecStart=/root/homelab-core/scripts/auto-apply.sh

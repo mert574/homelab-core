@@ -8,16 +8,15 @@
 # references this by file_id) on every single apply. Bump this URL by hand
 # when you want a newer Debian point release; see
 # https://cloud.debian.org/images/cloud/trixie/ for available snapshots.
-# overwrite = false is belt-and-suspenders: even if the pin above is ever
-# changed to something non-fixed again, this stops tofu from re-checking the
-# file's size against the URL and forcing a replace over it.
+# No overwrite=false here on purpose: file_name stays the same across a
+# future bump to a newer dated URL, and overwrite=false would block that
+# intentional re-download since a file already exists at that name.
 resource "proxmox_download_file" "debian_cloud_image" {
   content_type = "iso"
   datastore_id = "local"
   node_name    = var.pve_node
   url          = "https://cloud.debian.org/images/cloud/trixie/20260706-2531/debian-13-genericcloud-amd64-20260706-2531.qcow2"
   file_name    = "debian-13-genericcloud-amd64.img"
-  overwrite    = false
 }
 
 # cloud-init user-data: the k3s install with Cilium-ready flags. Templated so the
