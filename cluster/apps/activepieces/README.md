@@ -10,8 +10,10 @@ out of pulse's keyspace (DB 0).
 
 - `namespace.yaml` - the `activepieces` namespace
 - `app.yaml` - the single image serving frontend + API/execution engine on :80
-- `httproute.yaml` - `ap.mert574.dev` -> the activepieces service
-- `create-secrets.sh` - builds `activepieces-secrets` from `secrets/activepieces.env.enc`
+- `httproute.yaml` - `ap.mert574.dev` and `ap.k3s.internal` -> the activepieces service
+- `create-secrets.sh` - builds `activepieces-secrets`, bootstraps the admin
+  account, mirrors its password into Vaultwarden, and configures the ccflare
+  AI provider — all headless, safe to re-run
 
 ## Image
 
@@ -26,18 +28,22 @@ out of pulse's keyspace (DB 0).
    (`nix/hosts/postgres.nix`), the app reads the latter to connect.
 2. Rebuild `postgres` (new `activepieces` db/role) and `cloudflared` (new
    `ap.mert574.dev` route).
-3. With KUBECONFIG + `SOPS_AGE_KEY_FILE` set: `./create-secrets.sh`.
+3. With KUBECONFIG + `SOPS_AGE_KEY_FILE` set: `./create-secrets.sh`. This also
+   runs automatically via `cluster/bootstrap/up.sh` on a fresh k3s VM.
 4. Argo syncs `app.yaml` + `httproute.yaml`.
-5. Add the `ap.mert574.dev` Cloudflare DNS route.
+5. Add the `ap.mert574.dev` Cloudflare DNS route and the `ap.k3s.internal`
+   entry in `nix/lan-hosts`.
 
 ## AI provider (ccflare)
 
-Activepieces doesn't have a reliable env var for a custom OpenAI-compatible
-base URL — this moved to the admin UI in recent versions and a dedicated env
-var for it has been flaky/regressed upstream. After first login, add an
-OpenAI-compatible connection in Settings -> Connections pointing at
-`http://ccflare.internal:8080` (ccflare is already an OpenAI/Anthropic-compatible
-proxy, see `nix/hosts/ccflare.nix`), with whatever bearer key ccflare expects.
+Fully automated in `create-secrets.sh`. ccflare's `/v1/openai/*` and
+`/v1/anthropic/*` routes are pure passthrough to the real upstream API (they
+forward whatever client key you send, not ccflare's own accounts) — the actual
+route that fans out across ccflare's registered accounts is the compat route:
+`http://ccflare.internal:8080/v1/ccflare/openai/chat/completions`, with model
+ids prefixed (`anthropic/claude-sonnet-5`, not bare `claude-sonnet-5`). No real
+API key needed, ccflare ignores whatever's sent. See `nix/hosts/ccflare.nix`
+for the fuller writeup of this API shape.
 
 ## TODO before it serves traffic
 

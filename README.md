@@ -39,6 +39,18 @@ Cilium Gateway (LoadBalancer IP from Cilium LB IPAM)
 app pods  ->  Postgres (LXC, over the LAN)
 ```
 
+## Apps
+
+The k3s VM runs the actual applications, each in `cluster/apps/<name>/` with its
+own README:
+
+- **Pulse** (`cluster/apps/pulse/`) - the original app this homelab was built
+  around.
+- **Activepieces** (`cluster/apps/activepieces/`) - self-hosted workflow
+  automation, `ap.mert574.dev` / `ap.k3s.internal`. Bootstraps headlessly
+  (admin account + AI provider setup) via `create-secrets.sh`, no manual UI
+  step needed on a fresh deploy.
+
 ## Guest layout and RAM budget
 
 16GB total. Always-on guests:
@@ -46,20 +58,20 @@ app pods  ->  Postgres (LXC, over the LAN)
 | Guest        | Type | vCPU | RAM    | Role                                 |
 |--------------|------|------|--------|--------------------------------------|
 | Proxmox host | -    | -    | ~2GB   | hypervisor                           |
-| pihole       | LXC  | 1    | 0.5GB  | LAN DNS + ad blocking, static IP     |
+| pihole       | LXC  | 1    | 0.375GB| LAN DNS + ad blocking, static IP     |
 | postgres     | LXC  | 2    | 0.5GB  | NixOS Postgres service               |
 | cloudflared  | LXC  | 1    | 0.25GB | tunnel to the Gateway                |
 | k3s          | VM   | 4    | 8GB    | stateless web stack, Cilium, the apps |
-| garage       | LXC  | 2    | 1GB    | S3 + static asset hosting            |
+| garage       | LXC  | 2    | 0.5GB  | S3 + static asset hosting            |
 | media        | LXC  | 4    | 2GB    | Jellyfin + *arr + discovery          |
-| ccflare      | LXC  | 2    | 1GB    | Anthropic/OpenAI proxy + dashboard   |
+| ccflare      | LXC  | 2    | 2GB    | Anthropic/OpenAI proxy + dashboard   |
 | vaultwarden  | LXC  | 1    | 0.375GB| Bitwarden-compatible password vault  |
 
-These total ~15.4GB, so ~0.1GB free at rest (CI runners are ephemeral ARC pods,
-zero at rest). ccflare (~150MB) and vaultwarden (~50-100MB, Rust) both idle well
-under their `dedicated`, but we're hard against the 16GB wall now: lean on swap
-(`vm.swappiness=10`), stop a heavy on-demand box, or trim ccflare's `dedicated`
-if it's tight.
+These total 16GB exactly, so 0GB nominally free at rest (CI runners are
+ephemeral ARC pods, zero at rest). Actual idle usage sits well under most of
+these `dedicated` figures, but the budgeted total is now flush against the
+16GB wall: lean on swap (`vm.swappiness=10`), stop a heavy on-demand box, or
+trim one guest's `dedicated` if it's tight.
 
 On-demand guests, not autostarted, so ~0 RAM at rest; start one when you need it:
 

@@ -137,11 +137,11 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
       `secrets/activepieces.env.enc`'s `AP_POSTGRES_PASSWORD`
 - [ ] Rebuild `postgres` (new `activepieces` db/role) and `cloudflared` (new
       `ap.mert574.dev` route) after pulling the changes
-- [ ] `cluster/apps/activepieces/create-secrets.sh` (namespace + activepieces-secrets)
-- [ ] Add `ap.mert574.dev` to the Cloudflare tunnel -> Gateway LB IP (§4 above)
-- [ ] First login: create the admin account, then add ccflare as an AI connection
-      (Settings -> Connections, `http://ccflare.internal:8080`) — Activepieces
-      doesn't reliably support seeding this via env var, see `cluster/apps/activepieces/README.md`
+- [ ] `cluster/apps/activepieces/create-secrets.sh` — namespace, activepieces-secrets,
+      admin account, and the ccflare AI provider are all set up headlessly by this
+      script; no manual UI step needed
+- [ ] Add `ap.mert574.dev` and `ap.k3s.internal` to the Cloudflare tunnel / lan-hosts
+      (§4 above)
 
 ## 7. Router (Fritz!Box)
 
