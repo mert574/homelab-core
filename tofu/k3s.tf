@@ -2,12 +2,22 @@
 # servicelb/traefik so Cilium owns networking. Stateless and disposable.
 
 # Debian cloud image, downloaded to the node once and imported as the VM disk.
+# Pinned to a dated snapshot, not "latest" -- "latest" is a moving target that
+# changes size upstream over time, which made tofu see permanent drift and
+# want to replace this file (and therefore the k3s VM, since its disk
+# references this by file_id) on every single apply. Bump this URL by hand
+# when you want a newer Debian point release; see
+# https://cloud.debian.org/images/cloud/trixie/ for available snapshots.
+# overwrite = false is belt-and-suspenders: even if the pin above is ever
+# changed to something non-fixed again, this stops tofu from re-checking the
+# file's size against the URL and forcing a replace over it.
 resource "proxmox_download_file" "debian_cloud_image" {
   content_type = "iso"
   datastore_id = "local"
   node_name    = var.pve_node
-  url          = "https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.qcow2"
+  url          = "https://cloud.debian.org/images/cloud/trixie/20260706-2531/debian-13-genericcloud-amd64-20260706-2531.qcow2"
   file_name    = "debian-13-genericcloud-amd64.img"
+  overwrite    = false
 }
 
 # cloud-init user-data: the k3s install with Cilium-ready flags. Templated so the
