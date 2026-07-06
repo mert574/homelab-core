@@ -1,6 +1,15 @@
 # OTel Collector: receives OTLP from the Pulse services, tail-samples traces to Tempo,
 # forwards logs to Loki. Values vendored from pulse-pager
 # deploy/observability/otel-collector/values.yaml.
+#
+# replicaCount: 0 below doesn't actually scale the Deployment down itself: the
+# chart's template only sets spec.replicas when replicaCount is truthy, and 0
+# is falsy in Go templates, so the field is omitted from the rendered
+# manifest and Kubernetes defaults it to 1. But that omission also means Argo
+# CD stops managing spec.replicas on this Deployment (no drift is reported
+# when live replicas differs from an unset desired value), so `kubectl scale
+# deploy/pulse-otel-collector -n observability --replicas=0` sticks without
+# selfHeal reverting it.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -18,6 +27,7 @@ spec:
       valuesObject:
         fullnameOverride: pulse-otel-collector
         mode: deployment
+        replicaCount: 0
         image:
           repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib
         command:
@@ -75,19 +85,6 @@ spec:
                 receivers: [otlp]
                 processors: [memory_limiter, batch]
                 exporters: [otlphttp/loki]
-    # The chart's deployment template only renders spec.replicas when
-    # replicaCount is truthy (`replicaCount: 0` is falsy in Go templates, so
-    # the field gets omitted and Kubernetes defaults it to 1). Patch the
-    # rendered Deployment directly to force it to 0.
-    kustomize:
-      patches:
-        - target:
-            kind: Deployment
-            name: pulse-otel-collector
-          patch: |-
-            - op: add
-              path: /spec/replicas
-              value: 0
   destination:
     server: https://kubernetes.default.svc
     namespace: observability
