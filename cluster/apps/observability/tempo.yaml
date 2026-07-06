@@ -16,6 +16,7 @@ spec:
     targetRevision: 1.24.4
     helm:
       valuesObject:
+        replicas: 0 # scaled down to stop the observability stack; bump back to 1 to restore
         tempo:
           storage:
             trace:

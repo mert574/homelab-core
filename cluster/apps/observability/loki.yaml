@@ -19,7 +19,7 @@ spec:
         fullnameOverride: pulse-loki
         deploymentMode: SingleBinary
         singleBinary:
-          replicas: 1
+          replicas: 0 # scaled down to stop the observability stack; bump back to 1 to restore
           persistence:
             enabled: true
             size: 4Gi
