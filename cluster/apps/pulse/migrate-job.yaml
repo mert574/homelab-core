@@ -1,5 +1,8 @@
 # Apply pending DB migrations before each sync (Argo PreSync hook). The very first
 # deploy needs the schema bootstrapped once; see README.
+#
+# hook-weight explicit (must run after config.yaml's -1, since this envFrom's
+# pulse-config -- PreSync hooks run in ascending weight order, default is "0").
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -7,6 +10,7 @@ metadata:
   namespace: pulse
   annotations:
     argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-weight: "0"
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
   backoffLimit: 3

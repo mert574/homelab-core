@@ -84,3 +84,27 @@ resource "proxmox_virtual_environment_vm" "k3s" {
     order = 5
   }
 }
+
+# Auto-bootstrap Layer 3 (cluster/bootstrap/up.sh: kubeconfig fetch, Gateway
+# CRDs, Cilium, Argo CD, root app, per-app secrets) whenever this VM is applied.
+# Runs on every apply, not just a replace -- every step up.sh does is idempotent
+# (helm upgrade --install, kubectl apply, secret create --dry-run=client | apply),
+# so a no-op run just costs a few seconds. This is what makes a VM recreate
+# (e.g. from an unrelated cloud-init change forcing replacement) actually
+# hands-off instead of needing someone to remember to run up.sh by hand -- which
+# is exactly what didn't happen after the 2026-07-06 host-OOM incident forced
+# a k3s VM recreate.
+# Requires the caller to have sourced scripts/load-env.sh before `tofu apply`
+# (same convention as running up.sh directly), so local-exec inherits
+# GIT_HTTP_TOKEN / GITHUB_RUNNER_TOKEN / SOPS_AGE_KEY_FILE.
+resource "null_resource" "k3s_bootstrap" {
+  triggers = {
+    always_run = timestamp()
+  }
+
+  provisioner "local-exec" {
+    command = "${path.module}/../cluster/bootstrap/up.sh"
+  }
+
+  depends_on = [proxmox_virtual_environment_vm.k3s]
+}

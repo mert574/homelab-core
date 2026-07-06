@@ -1,10 +1,20 @@
 # Non-secret Pulse config. Secrets come from the `pulse-secrets` Secret that
 # create-secrets.sh builds from the encrypted env.
+#
+# PreSync hook, weighted before migrate-job.yaml (which envFrom's this
+# ConfigMap): without a hook annotation this is a normal resource, applied in
+# Argo's main Sync phase -- which runs *after* PreSync hooks. On a fresh
+# cluster with nothing pre-existing, migrate-job would then always race ahead
+# of this ConfigMap's creation and fail with "configmap not found" (hit this
+# for real after the 2026-07-06 k3s VM recreate).
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: pulse-config
   namespace: pulse
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-weight: "-1"
 data:
   PULSE_LOG_LEVEL: "info"
   PULSE_REGION: "eu-central"

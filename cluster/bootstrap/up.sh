@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # No-touch Layer 3, run on the Proxmox host after Layer 2. Waits for the k3s VM,
 # grabs its kubeconfig, installs kubectl+helm, bootstraps the cluster
-# (Gateway/Cilium/Argo/root-app), creates the Pulse secrets, and (if a token is
-# set) the ARC runner secret. The caller sources the sops env first, so
-# GIT_HTTP_TOKEN / GITHUB_RUNNER_TOKEN / SOPS_AGE_KEY_FILE are already exported.
+# (Gateway/Cilium/Argo/root-app), creates each app's secrets (Pulse,
+# Activepieces), and (if a token is set) the ARC runner secret. The caller
+# sources the sops env first, so GIT_HTTP_TOKEN / GITHUB_RUNNER_TOKEN /
+# SOPS_AGE_KEY_FILE are already exported. Also invoked automatically by tofu
+# (see the k3s_bootstrap null_resource in tofu/k3s.tf) on every apply, so this
+# whole script must stay idempotent.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$HERE/../.." && pwd)"
@@ -37,6 +40,9 @@ bash "$REPO_ROOT/cluster/bootstrap/install.sh"
 # 4. Pulse secrets (namespace, GHCR pull, pulse-secrets, pulse-jwt)
 bash "$REPO_ROOT/cluster/apps/pulse/create-secrets.sh"
 
+# 4b. Activepieces secrets + headless admin bootstrap + Vaultwarden mirror
+bash "$REPO_ROOT/cluster/apps/activepieces/create-secrets.sh"
+
 # 5. ARC self-hosted runners (optional; needs a token with the right scope)
 if [ -n "${GITHUB_RUNNER_TOKEN:-}" ]; then
   kubectl create namespace arc-runners --dry-run=client -o yaml | kubectl apply -f -
@@ -45,4 +51,4 @@ if [ -n "${GITHUB_RUNNER_TOKEN:-}" ]; then
     --dry-run=client -o yaml | kubectl apply -f -
 fi
 
-echo "Layer 3 up. Argo CD is syncing cluster/apps; Pulse will roll out once its images pull."
+echo "Layer 3 up. Argo CD is syncing cluster/apps; Pulse and Activepieces will roll out once their images pull."

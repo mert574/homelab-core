@@ -8,5 +8,10 @@ terraform {
       source  = "bpg/proxmox"
       version = "~> 0.111"
     }
+    # for the k3s_bootstrap local-exec provisioner (tofu/k3s.tf)
+    null = {
+      source  = "hashicorp/null"
+      version = "~> 3.2"
+    }
   }
 }
