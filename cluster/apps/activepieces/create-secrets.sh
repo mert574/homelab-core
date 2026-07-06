@@ -41,7 +41,7 @@ admin_last="$(get AP_ADMIN_LAST_NAME)"
 pf_log="$(mktemp)"
 kubectl -n activepieces port-forward svc/activepieces 18091:80 >"$pf_log" 2>&1 &
 pf_pid=$!
-trap 'kill "$pf_pid" 2>/dev/null; rm -f "$env_plain" "$pf_log"' EXIT
+trap 'kill "$pf_pid" 2>/dev/null || true; rm -f "$env_plain" "$pf_log"' EXIT
 for _ in $(seq 1 20); do curl -sf http://127.0.0.1:18091/api/v1/health >/dev/null 2>&1 && break; sleep 1; done
 
 signup_body="$(jq -n --arg e "$admin_email" --arg p "$admin_password" --arg f "$admin_first" --arg l "$admin_last" \
