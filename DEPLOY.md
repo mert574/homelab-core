@@ -53,11 +53,13 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
 - [ ] `scripts/apply-nixos.sh` configures every NixOS guest (nixos-rebuild inside
       each via pct). The bootstrap runs it; run it by hand to re-apply after edits.
 - [ ] First-boot check: if a box has no IP, set `proxmoxLXC.manageNetwork` (see `nix/README.md`)
-- [ ] **garage** layout, the nix-cache bucket, its alias/website and the CI write
-      key are set up automatically by the `garage-setup` service in
-      `nix/hosts/garage.nix` (`scripts/garage-setup.sh`). The SPA bucket is still in
-      `cluster/apps/pulse/README.md` (move it into `ensure_site` when you want it
-      automated too).
+- [ ] **garage** layout, the nix-cache + pulse frontend buckets (`pulse-app`,
+      `pulse-docs`), their aliases/website and the nix-cache/blog CI write keys are set up
+      automatically by the `garage-setup` service in `nix/hosts/garage.nix`
+      (`scripts/garage-setup.sh`). SPA hosts also get a Caddy layer in front of
+      Garage's web port that turns deep-route 404s into `index.html` (200); add a
+      new SPA host to `spaHosts` there. Only the `pulse-web` push key stays manual
+      (`cluster/apps/pulse/README.md`).
 - [ ] **Nix binary cache (Garage)**: lets re-applies pull host closures prebuilt
       instead of rebuilding on each box (first boot still builds locally, that's
       fine). The bucket/DNS/key are all in code; only the secret values are yours:

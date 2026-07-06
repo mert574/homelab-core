@@ -1,6 +1,10 @@
 # app.pulsepager.com: the API plane goes to the api service, everything else to
 # the Garage bucket serving the SPA. Same origin, so auth cookies still work.
 # More specific paths win, so /api etc. beat the catch-all.
+#
+# The SPA 404->index.html(200) fallback is handled Garage-side (Caddy in front of
+# Garage's web port, see nix/hosts/garage.nix), so this route just points at the
+# garage-web Service like the docs route does -- no per-app proxy in the cluster.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -20,6 +24,6 @@ spec:
       backendRefs:
         - name: api
           port: 8080
-    - backendRefs: # default: the SPA from Garage
+    - backendRefs: # default: the SPA from Garage (Caddy adds the 200 fallback)
         - name: garage-web
           port: 80

@@ -37,10 +37,13 @@
 
       # Static website serving. Each site is its own bucket whose global alias is
       # the site's domain (bucket `app.pulsepager.com`, bucket `othersite.io`, ...),
-      # so any number of unrelated domains are served by Host match. cloudflared
-      # points each hostname here.
+      # so any number of unrelated domains are served by Host match.
+      #
+      # Garage binds loopback-only here: the Caddy below owns the public web port
+      # (3902) and proxies to this, adding the SPA 404->index.html(200) fallback
+      # for SPA hosts. cloudflared / the Cilium Gateway still target :3902 (Caddy).
       s3_web = {
-        bind_addr = "[::]:3902";
+        bind_addr = "127.0.0.1:3912";
         # garage requires root_domain whenever s3_web is set. Buckets are still
         # matched by their global alias (the full domain) regardless of this; it
         # just additionally enables <bucket>.web.garage.internal style hosting.
@@ -55,7 +58,53 @@
     };
   };
 
-  networking.firewall.allowedTCPPorts = [ 3900 3902 ]; # S3 + web
+  # SPA fallback layer, in front of Garage's web port. A single-page app served
+  # from a bucket needs every unknown path (client-side routes like /login) to
+  # return index.html with 200 so the router can boot. Garage (v1.3.x) can serve
+  # a website error-document, but only with the original 404 status -- there's no
+  # way to make it 200. So Caddy owns the public web port (3902), Garage moved to
+  # a loopback port (3912 above), and Caddy serves each SPA host with a
+  # try_files-style 404 -> /index.html (200) fallback. Every other host
+  # (nix-cache, the docs site, the blog) is passed straight through, so their
+  # 404s stay real 404s -- important for the Nix substituter especially.
+  #
+  # Caddy (over nginx/HAProxy) because `handle_response @404` is a first-class way
+  # to turn an upstream 404 into a 200 that refetches a different object, it keeps
+  # the client Host by default (Garage matches the bucket by Host), and it streams
+  # responses (nix-cache nars) without extra tuning.
+  #
+  # Adding a new SPA is one line: append its Host to `spaHosts`. Everything else
+  # (bucket, alias, website flag, cloudflared route) is unchanged.
+  services.caddy = let
+    garageWeb = "127.0.0.1:3912";
+    spaHosts = [ "app.pulsepager.com" ];
+    # Per-SPA site: try the real object; on a 404, rewrite to /index.html and
+    # refetch -- Garage returns it with 200, so the SPA router boots. Host is
+    # preserved (Caddy's default) so Garage still selects the bucket by Host.
+    spaVhost = host: lib.nameValuePair "http://${host}:3902" {
+      extraConfig = ''
+        reverse_proxy ${garageWeb} {
+          @notfound status 404
+          handle_response @notfound {
+            rewrite * /index.html
+            reverse_proxy ${garageWeb}
+          }
+        }
+      '';
+    };
+  in {
+    enable = true;
+    globalConfig = "auto_https off"; # plain HTTP on :3902; TLS is Cloudflare's job
+    # NB: the `http://` scheme on every site address is required, not cosmetic --
+    # a schemeless `host:3902` is still treated as HTTPS even with auto_https off,
+    # and Caddy then 400s plain HTTP with "sent an HTTP request to an HTTPS server".
+    virtualHosts = {
+      # Catch-all: every non-SPA host streams straight to Garage, 404s stay real.
+      "http://:3902".extraConfig = "reverse_proxy ${garageWeb}";
+    } // lib.listToAttrs (map spaVhost spaHosts);
+  };
+
+  networking.firewall.allowedTCPPorts = [ 3900 3902 ]; # S3 + web (Caddy fronts 3902)
 
   # Pull garage's four values out of the whole-env sops secret into a small
   # root-only EnvironmentFile, stripping the dotenv KEY="value" quotes so both
