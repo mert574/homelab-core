@@ -41,7 +41,7 @@ admin_last="$(get AP_ADMIN_LAST_NAME)"
 pf_log="$(mktemp)"
 kubectl -n activepieces port-forward svc/activepieces 18091:80 >"$pf_log" 2>&1 &
 pf_pid=$!
-trap 'kill "$pf_pid" 2>/dev/null || true; rm -f "$env_plain" "$pf_log"' EXIT
+trap 'kill "$pf_pid" 2>/dev/null; rm -f "$env_plain" "$pf_log"' EXIT
 for _ in $(seq 1 20); do curl -sf http://127.0.0.1:18091/api/v1/health >/dev/null 2>&1 && break; sleep 1; done
 
 signup_body="$(jq -n --arg e "$admin_email" --arg p "$admin_password" --arg f "$admin_first" --arg l "$admin_last" \
@@ -54,24 +54,24 @@ else
   echo "activepieces: admin sign-up skipped, already bootstrapped (HTTP $signup_code)"
 fi
 
-# --- ccflare AI provider (idempotent: no update endpoint exists, so delete +
-# recreate). Model ids are ccflare's compat-route format (anthropic/<model>) --
-# see nix/hosts/ccflare.nix for why. ---
+# --- bifrost AI provider (idempotent: no update endpoint exists, so delete +
+# recreate). Model ids are Bifrost's compat-route format (anthropic/<model>) --
+# see nix/hosts/bifrost.nix for why. ---
 signin_body="$(jq -n --arg e "$admin_email" --arg p "$admin_password" '{email:$e, password:$p}')"
 token="$(curl -s -X POST http://127.0.0.1:18091/api/v1/authentication/sign-in \
   -H "Content-Type: application/json" -d "$signin_body" | jq -r '.token')"
 
 if [ -n "$token" ] && [ "$token" != "null" ]; then
   existing_id="$(curl -s http://127.0.0.1:18091/api/v1/ai-providers -H "Authorization: Bearer $token" \
-    | jq -r '.[] | select(.name == "ccflare") | .id')"
+    | jq -r '.[] | select(.name == "bifrost") | .id')"
   [ -n "$existing_id" ] && curl -s -X DELETE "http://127.0.0.1:18091/api/v1/ai-providers/$existing_id" \
     -H "Authorization: Bearer $token" >/dev/null
 
   provider_body='{
     "provider": "custom",
-    "displayName": "ccflare",
+    "displayName": "bifrost",
     "config": {
-      "baseUrl": "http://ccflare.internal:8080/v1/ccflare/openai",
+      "baseUrl": "http://bifrost.internal:8080/openai",
       "apiKeyHeader": "Authorization",
       "models": [
         {"modelId": "anthropic/claude-sonnet-5", "modelName": "Claude Sonnet 5", "modelType": "text"},
@@ -80,11 +80,11 @@ if [ -n "$token" ] && [ "$token" != "null" ]; then
         {"modelId": "anthropic/claude-haiku-4-5-20251001", "modelName": "Claude Haiku 4.5", "modelType": "text"}
       ]
     },
-    "auth": {"apiKey": "unused-ccflare-ignores-this"}
+    "auth": {"apiKey": "unused-bifrost-ignores-this"}
   }'
   curl -s -X POST http://127.0.0.1:18091/api/v1/ai-providers -H "Authorization: Bearer $token" \
     -H "Content-Type: application/json" -d "$provider_body" >/dev/null
-  echo "activepieces: ccflare AI provider configured"
+  echo "activepieces: bifrost AI provider configured"
 else
   echo "activepieces: sign-in failed, skipping AI provider setup"
 fi

@@ -1,0 +1,127 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: librechat
+  namespace: librechat
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: librechat }
+  template:
+    metadata:
+      labels: { app: librechat }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: librechat
+          image: ghcr.io/danny-avila/librechat:v0.8.7
+          ports:
+            - { name: http, containerPort: 3080 }
+          envFrom:
+            - configMapRef: { name: librechat-config }
+            - secretRef: { name: librechat-secrets }
+          startupProbe:
+            tcpSocket: { port: http }
+            failureThreshold: 30
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket: { port: http }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          readinessProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 250m, memory: 384Mi }
+            limits: { memory: 1Gi }
+          volumeMounts:
+            - { name: uploads, mountPath: /app/uploads }
+            - { name: images, mountPath: /app/client/public/images }
+            - { name: logs, mountPath: /app/api/logs }
+            - name: config
+              mountPath: /app/librechat.yaml
+              subPath: librechat.yaml
+              readOnly: true
+      volumes:
+        - { name: uploads, emptyDir: {} }
+        - { name: images, emptyDir: {} }
+        - { name: logs, emptyDir: {} }
+        - name: config
+          configMap: { name: librechat-file }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: librechat
+  namespace: librechat
+spec:
+  selector: { app: librechat }
+  ports:
+    - port: 3080
+      targetPort: 3080
+---
+# Recreate, not RollingUpdate: only one replica mounts the ReadWriteOnce PVC,
+# so the old pod must fully terminate before the new one can start.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  namespace: librechat
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: mongodb }
+  template:
+    metadata:
+      labels: { app: mongodb }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: mongodb
+          image: mongo:8.0.20
+          args: ["--noauth", "--bind_ip_all"]
+          ports:
+            - { containerPort: 27017 }
+          livenessProbe:
+            tcpSocket: { port: 27017 }
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket: { port: 27017 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 1Gi }
+          volumeMounts:
+            - { name: data, mountPath: /data/db }
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: mongodb-data }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: librechat
+spec:
+  selector: { app: mongodb }
+  ports:
+    - port: 27017
+      targetPort: 27017

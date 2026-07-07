@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: librechat-config
+  namespace: librechat
+data:
+  ALLOW_EMAIL_LOGIN: "true"
+  ALLOW_PASSWORD_RESET: "false"
+  ALLOW_REGISTRATION: "false"
+  ALLOW_SOCIAL_LOGIN: "false"
+  CONFIG_PATH: /app/librechat.yaml
+  DOMAIN_CLIENT: https://ai.mert574.dev
+  DOMAIN_SERVER: https://ai.mert574.dev
+  HOST: 0.0.0.0
+  MONGO_URI: mongodb://mongodb:27017/LibreChat
+  PORT: "3080"
+  SEARCH: "false"
+  TRUST_PROXY: "1"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: librechat-file
+  namespace: librechat
+data:
+  librechat.yaml: |
+    version: 1.2.8
+    cache: true
+    endpoints:
+      custom:
+        - name: "Claude (bifrost)"
+          apiKey: "bifrost"
+          baseURL: "http://192.168.178.113:8080/openai"
+          models:
+            default:
+              - "anthropic/claude-sonnet-5"
+              - "anthropic/claude-fable-5"
+              - "anthropic/claude-haiku-4-5-20251001"
+            fetch: false
+          titleConvo: true
+          titleModel: "anthropic/claude-haiku-4-5-20251001"
+          modelDisplayLabel: "Claude"
+    # Presets so a model is ALWAYS selected (no "send with nothing chosen"). Sonnet 5
+    # is the default; the header dropdown switches between the three. prioritize:true
+    # keeps a spec selected and hides the empty Agents state.
+    modelSpecs:
+      prioritize: true
+      enforce: false
+      list:
+        - name: "sonnet-5"
+          label: "Claude Sonnet 5"
+          default: true
+          description: "Most capable, default"
+          preset:
+            endpoint: "Claude (bifrost)"
+            model: "anthropic/claude-sonnet-5"
+        - name: "fable-5"
+          label: "Claude Fable 5"
+          description: "Balanced speed and quality"
+          preset:
+            endpoint: "Claude (bifrost)"
+            model: "anthropic/claude-fable-5"
+        - name: "haiku-4-5"
+          label: "Claude Haiku 4.5"
+          description: "Fast and cheap"
+          preset:
+            endpoint: "Claude (bifrost)"
+            model: "anthropic/claude-haiku-4-5-20251001"
