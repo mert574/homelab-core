@@ -30,7 +30,7 @@ data:
       custom:
         - name: "Claude (bifrost)"
           apiKey: "bifrost"
-          baseURL: "http://192.168.178.113:8080/openai"
+          baseURL: "http://192.168.178.113/openai"
           models:
             default:
               - "anthropic/claude-sonnet-5"

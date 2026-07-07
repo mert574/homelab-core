@@ -9,9 +9,10 @@
 # persistent volume, so a container recreation never loses accounts.
 #
 # Usage notes:
-# - Point an OpenAI-compatible client at http://bifrost.internal:8080/openai (or
+# - Point an OpenAI-compatible client at http://bifrost.internal/openai (or
 #   /v1/chat/completions directly). Model ids are prefixed with the provider name
 #   (`anthropic/<model-id>`) -- see the actual ids configured in config.json.
+#   The container listens on 8080 internally; the host maps that to 80.
 # - Accounts/providers/budgets are configured through Bifrost's UI or config.json,
 #   not sops.
 { config, pkgs, lib, ... }:
@@ -31,7 +32,7 @@ in
   virtualisation.oci-containers.containers.bifrost = {
     image = "maximhq/bifrost:${bifrostImageTag}";
     autoStart = true;
-    ports = [ "8080:8080" ];
+    ports = [ "80:8080" ];
     volumes = [ "${stateDir}:/app/data" ];
   };
 
@@ -43,5 +44,5 @@ in
   ];
 
   # Proxy + dashboard reachable on the LAN.
-  networking.firewall.allowedTCPPorts = [ 8080 ];
+  networking.firewall.allowedTCPPorts = [ 80 ];
 }

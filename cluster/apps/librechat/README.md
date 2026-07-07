@@ -2,7 +2,7 @@
 
 A self-hosted chat UI (`ghcr.io/danny-avila/librechat`) plus its own MongoDB, both
 in-cluster, synced by Argo. Wired to Bifrost (the Anthropic proxy on the LXC at
-`192.168.178.113:8080`) as a custom OpenAI-compatible endpoint, with three Claude
+`192.168.178.113`) as a custom OpenAI-compatible endpoint, with three Claude
 model presets always selected (no empty "nothing chosen" state).
 
 This app was originally deployed by hand, straight into the cluster, and was

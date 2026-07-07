@@ -71,7 +71,7 @@ if [ -n "$token" ] && [ "$token" != "null" ]; then
     "provider": "custom",
     "displayName": "bifrost",
     "config": {
-      "baseUrl": "http://bifrost.internal:8080/openai",
+      "baseUrl": "http://bifrost.internal/openai",
       "apiKeyHeader": "Authorization",
       "models": [
         {"modelId": "anthropic/claude-sonnet-5", "modelName": "Claude Sonnet 5", "modelType": "text"},

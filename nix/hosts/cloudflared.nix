@@ -54,7 +54,7 @@
         "ccflare.mert574.dev" = "http://192.168.178.111:8080";
         # Bifrost: replacing ccflare (same job, lower memory). Keep both entries
         # until consumers are cut over and ccflare is decommissioned.
-        "bifrost.mert574.dev" = "http://192.168.178.113:8080";
+        "bifrost.mert574.dev" = "http://192.168.178.113";
         # Activepieces: routes through the Cilium Gateway like pulse's hostnames;
         # the in-cluster HTTPRoute in cluster/apps/activepieces splits by host.
         "ap.mert574.dev" = "http://192.168.178.200:80";

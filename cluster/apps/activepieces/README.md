@@ -37,7 +37,7 @@ out of pulse's keyspace (DB 0).
 ## AI provider (bifrost)
 
 Fully automated in `create-secrets.sh`. Bifrost's OpenAI-SDK-compat route
-fans out across its registered accounts: `http://bifrost.internal:8080/openai`
+fans out across its registered accounts: `http://bifrost.internal/openai`
 (LibreChat/Activepieces append `/chat/completions`), with model ids prefixed
 (`anthropic/claude-sonnet-5`, not bare `claude-sonnet-5`). No real API key
 needed, Bifrost ignores whatever's sent. See `nix/hosts/bifrost.nix` for the
