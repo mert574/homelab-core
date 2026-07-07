@@ -17,7 +17,7 @@ AGE_KEY="${AGE_KEY:-/root/.config/sops/age/keys.txt}"
 hosts=(
   "postgres=102" "cloudflared=103" "admin=105" "ai=106"
   "playground=107" "garage=109" "media=110" "ccflare=111"
-  "vaultwarden=112"
+  "vaultwarden=112" "bifrost=113"
 )
 
 archive=/tmp/homelab-core.tgz
