@@ -35,8 +35,11 @@ in
     volumes = [ "${stateDir}:/app/data" ];
   };
 
+  # Bifrost's container entrypoint runs as uid/gid 1000 and chowns this dir on
+  # start; own it as 1000:1000 up front so that chown (which fails inside this
+  # unprivileged LXC) is never actually needed.
   systemd.tmpfiles.rules = [
-    "d ${stateDir} 0750 root root -"
+    "d ${stateDir} 0750 1000 1000 -"
   ];
 
   # Proxy + dashboard reachable on the LAN.
