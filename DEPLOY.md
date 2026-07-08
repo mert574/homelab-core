@@ -90,18 +90,18 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
       zone whose nameservers point at Cloudflare):
   - `pulsepager.com`, `app.pulsepager.com`
   - `mert574.dev`: apex + `www` (personal site), `media`, `requests`, `garage`,
-    `proxmox`, `bifrost`, `pw`, `ap` (Activepieces)
+    `proxmox`, `ccflare`, `pw`, `ap` (Activepieces)
   - ```
     for h in mert574.dev www.mert574.dev media.mert574.dev requests.mert574.dev \
-             garage.mert574.dev proxmox.mert574.dev bifrost.mert574.dev \
-             pw.mert574.dev ap.mert574.dev; do
+             garage.mert574.dev proxmox.mert574.dev ccflare.mert574.dev pw.mert574.dev \
+             ap.mert574.dev; do
       cloudflared tunnel route dns homelab "$h"
     done
     ```
     (creates a proxied CNAME -> `<tunnel-uuid>.cfargotunnel.com`; the dashboard works too)
   - Keep *arr/qBittorrent/etc. LAN-only. `media`/`requests` (Jellyfin/Jellyseerr),
     `garage` (S3 API) and `pw` (Vaultwarden) are public with app-level auth;
-    **`proxmox` and `bifrost` must sit behind Cloudflare Access** (Zero Trust ->
+    **`proxmox` and `ccflare` must sit behind Cloudflare Access** (Zero Trust ->
     Access -> Applications: one self-hosted app per hostname, e.g. an allow policy on
     your email). Access is dashboard/API-only here (no cloudflare TF provider), so
     it's a manual step, do it before the DNS route goes live to avoid exposing them
@@ -140,7 +140,7 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
 - [ ] Rebuild `postgres` (new `activepieces` db/role) and `cloudflared` (new
       `ap.mert574.dev` route) after pulling the changes
 - [ ] `cluster/apps/activepieces/create-secrets.sh`: namespace, activepieces-secrets,
-      admin account, and the bifrost AI provider are all set up headlessly by this
+      admin account, and the ccflare AI provider are all set up headlessly by this
       script; no manual UI step needed
 - [ ] Add `ap.mert574.dev` and `ap.k3s.internal` to the Cloudflare tunnel / lan-hosts
       (§4 above)

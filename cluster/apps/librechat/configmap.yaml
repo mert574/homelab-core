@@ -28,9 +28,9 @@ data:
     cache: true
     endpoints:
       custom:
-        - name: "Claude (bifrost)"
-          apiKey: "bifrost"
-          baseURL: "http://192.168.178.113/openai"
+        - name: "Claude (ccflare)"
+          apiKey: "ccflare"
+          baseURL: "http://192.168.178.111:8080/v1/ccflare/openai"
           models:
             default:
               - "anthropic/claude-sonnet-5"
@@ -52,17 +52,17 @@ data:
           default: true
           description: "Most capable, default"
           preset:
-            endpoint: "Claude (bifrost)"
+            endpoint: "Claude (ccflare)"
             model: "anthropic/claude-sonnet-5"
         - name: "fable-5"
           label: "Claude Fable 5"
           description: "Balanced speed and quality"
           preset:
-            endpoint: "Claude (bifrost)"
+            endpoint: "Claude (ccflare)"
             model: "anthropic/claude-fable-5"
         - name: "haiku-4-5"
           label: "Claude Haiku 4.5"
           description: "Fast and cheap"
           preset:
-            endpoint: "Claude (bifrost)"
+            endpoint: "Claude (ccflare)"
             model: "anthropic/claude-haiku-4-5-20251001"

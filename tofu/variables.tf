@@ -131,12 +131,6 @@ variable "ccflare_ip" {
   default     = "192.168.178.111/24"
 }
 
-variable "bifrost_ip" {
-  type        = string
-  description = "Static IPv4 for the Bifrost proxy LXC"
-  default     = "192.168.178.113/24"
-}
-
 variable "vaultwarden_ip" {
   type        = string
   description = "Static IPv4 for the Vaultwarden (Bitwarden) LXC"

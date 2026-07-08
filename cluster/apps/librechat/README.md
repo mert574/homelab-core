@@ -1,8 +1,8 @@
 # LibreChat
 
 A self-hosted chat UI (`ghcr.io/danny-avila/librechat`) plus its own MongoDB, both
-in-cluster, synced by Argo. Wired to Bifrost (the Anthropic proxy on the LXC at
-`192.168.178.113`) as a custom OpenAI-compatible endpoint, with three Claude
+in-cluster, synced by Argo. Wired to ccflare (the Anthropic proxy on the LXC at
+`192.168.178.111:8080`) as a custom OpenAI-compatible endpoint, with three Claude
 model presets always selected (no empty "nothing chosen" state).
 
 This app was originally deployed by hand, straight into the cluster, and was
@@ -22,7 +22,7 @@ real.
   (empty) one.
 - `configmap.yaml` - `librechat-config` (env vars: registration/social login
   off, email login on, points at the in-cluster Mongo) and `librechat-file`
-  (the mounted `librechat.yaml`: the Bifrost custom endpoint + model presets).
+  (the mounted `librechat.yaml`: the ccflare custom endpoint + model presets).
 - `httproute.yaml` - `ai.mert574.dev` + `librechat.k3s.internal` through the
   Cilium Gateway, same pattern as Activepieces and Pulse.
 - `create-secrets.sh` - builds `librechat-secrets` (JWT/CREDS keys) from the

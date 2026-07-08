@@ -64,7 +64,7 @@ own README:
 | k3s          | VM   | 4    | 8GB    | stateless web stack, Cilium, the apps |
 | garage       | LXC  | 2    | 0.5GB  | S3 + static asset hosting            |
 | media        | LXC  | 4    | 2GB    | Jellyfin + *arr + discovery          |
-| bifrost      | LXC  | 1    | 0.5GB  | Anthropic/OpenAI proxy + dashboard   |
+| ccflare      | LXC  | 2    | 2GB    | Anthropic/OpenAI proxy + dashboard   |
 | vaultwarden  | LXC  | 1    | 0.375GB| Bitwarden-compatible password vault  |
 
 These total 16GB exactly, so 0GB nominally free at rest (CI runners are
@@ -105,8 +105,8 @@ install answer file, Layer 0-1, not by OpenTofu).
 | `.108`            | playground-debian (LXC, Debian) - FHS twin  |
 | `.109`            | garage (LXC, NixOS) - S3 + static hosting   |
 | `.110`            | media (LXC, NixOS) - Jellyfin + *arr + scripts |
+| `.111`            | ccflare (LXC, NixOS) - Anthropic/OpenAI proxy  |
 | `.112`            | vaultwarden (LXC, NixOS) - password vault   |
-| `.113`            | bifrost (LXC, NixOS) - Anthropic/OpenAI proxy |
 | `.200` - `.220`   | Cilium LB pool (.200 pinned to the Gateway) |
 
 The `ai` sandbox is deliberately **not** on this LAN. It lives alone on an

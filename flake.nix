@@ -1,5 +1,5 @@
 {
-  description = "homelab-core NixOS LXC hosts (admin, ai, playground, postgres, cloudflared, garage, media, ccflare, bifrost, vaultwarden)";
+  description = "homelab-core NixOS LXC hosts (admin, ai, playground, postgres, cloudflared, garage, media, ccflare, vaultwarden)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
@@ -38,7 +38,6 @@
         garage      = mkHost [ ./nix/hosts/garage.nix sops-nix.nixosModules.sops ];
         media       = mkHost [ ./nix/hosts/media.nix sops-nix.nixosModules.sops vpn-confinement.nixosModules.default ];
         ccflare     = mkHost [ ./nix/hosts/ccflare.nix ];
-        bifrost     = mkHost [ ./nix/hosts/bifrost.nix ];
         vaultwarden = mkHost [ ./nix/hosts/vaultwarden.nix sops-nix.nixosModules.sops ];
       };
     };
