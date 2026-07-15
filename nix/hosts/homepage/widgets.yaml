@@ -1,0 +1,17 @@
+# Disk space is the whole point of this page. The paths below are bind-mounted
+# into the container in media.nix (/pool = mergerfs union, /disk-boot = OS/root
+# branch, /disk-usb = USB branch).
+- resources:
+    label: Media pool
+    disk: /pool
+- resources:
+    label: OS disk
+    disk: /disk-boot
+- resources:
+    label: USB disk
+    disk: /disk-usb
+- datetime:
+    text_size: xl
+    format:
+      timeStyle: short
+      dateStyle: short

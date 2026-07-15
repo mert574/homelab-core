@@ -161,8 +161,10 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
       LAN with no manual step
 - [ ] Register **Byparr** in Prowlarr as a FlareSolverr proxy (`http://localhost:8191`)
       and tag the indexers that need it
-- [ ] **SuggestArr** web UI: set the TMDb key + Jellyfin and Jellyseerr URLs/keys
-      (auto-discovery -> Jellyseerr -> Sonarr/Radarr)
+- [ ] **Homepage** dashboard (http://media.internal): create
+      `nix/hosts/homepage/services.yaml` with the *arr/service API keys. It is
+      gitignored (secrets) and shipped via the `scripts/apply-nixos.sh` working-tree
+      tar, so a fresh install must recreate it by hand before the rebuild.
 - [ ] **QuickSync**: host must expose `/dev/dri` (i915 driver, default on Proxmox).
       Then enable Intel QSV/VAAPI in Jellyfin Playback settings. Unprivileged LXC
       may need the render device gid mapped so jellyfin can read

@@ -85,10 +85,24 @@ in
   # gives the media group write, which satisfies protected_hardlinks.
   systemd.services.qbittorrent.serviceConfig.UMask = "0002";
 
+  # Self-heal the single-instance lock so boot stays 0-touch. An unclean shutdown
+  # (power loss, OOM, a read-only-fs crash) leaves a stale lockfile; qBittorrent's
+  # instance check then makes it exit 0 silently on every boot and the WebUI never
+  # returns until the lock is cleared by hand. Removing it before start fixes that;
+  # rm -f is a no-op on a clean boot. mkBefore so it runs ahead of any hook the
+  # vpn-confinement module adds and merges instead of clobbering it.
+  systemd.services.qbittorrent.serviceConfig.ExecStartPre =
+    lib.mkBefore [ "${pkgs.coreutils}/bin/rm -f /var/lib/qBittorrent/qBittorrent/config/lockfile" ];
+
   # Automation on the LAN.
   services.prowlarr.enable = true; # indexers (9696)
   services.sonarr = { enable = true; group = "media"; }; # TV (8989)
   services.radarr = { enable = true; group = "media"; }; # movies (7878)
+  # Create library dirs group-writable (0002) so Jellyfin (group media) can delete
+  # imported files. Default umask 022 makes drwxr-sr-x dirs that block group deletes
+  # -> Jellyfin DELETE fails with "Permission denied". Matches qBittorrent's UMask.
+  systemd.services.sonarr.serviceConfig.UMask = "0002";
+  systemd.services.radarr.serviceConfig.UMask = "0002";
   services.bazarr = { enable = true; group = "media"; }; # subtitles (6767)
   services.seerr.enable = true; # jellyseerr: requests + discovery front-end (5055)
 
@@ -156,13 +170,36 @@ in
     ports = [ "127.0.0.1:8191:8191" ];
   };
 
-  # SuggestArr: watches recently-played in Jellyfin and auto-requests similar
-  # titles via Jellyseerr (-> Sonarr/Radarr). Hands-off video discovery. Config
-  # (TMDb key, Jellyfin + Jellyseerr URLs/keys) is set in its web UI.
-  virtualisation.oci-containers.containers.suggestarr = {
-    image = "ciuse99/suggestarr:latest";
-    ports = [ "5000:5000" ];
-    volumes = [ "suggestarr-config:/app/config/config_files" ];
+  # Homepage: the household "home page" — at-a-glance disk space + links to
+  # Jellyfin (watch) and Jellyseerr (request), the only two apps the end user
+  # touches. Served on port 80 so it's just http://media.internal. The disk
+  # widgets read the two physical pool branches (real ext4, reliable statvfs)
+  # plus the mergerfs union for the aggregate figure — see homepage/widgets.yaml.
+  virtualisation.oci-containers.containers.homepage = {
+    image = "ghcr.io/gethomepage/homepage:latest";
+    ports = [ "80:3000" ];
+    environment = {
+      # Homepage 0.9+ refuses requests whose Host header isn't allow-listed.
+      HOMEPAGE_ALLOWED_HOSTS = "media.internal,192.168.178.110,media.internal:80,192.168.178.110:80";
+      PUID = "1000";
+      PGID = "1500"; # the media group
+      TZ = "Europe/Berlin";
+    };
+    volumes = [
+      "homepage-config:/app/config"                               # writable: logs + generated files
+      "${./homepage/settings.yaml}:/app/config/settings.yaml:ro"  # declarative config (tracks repo)
+      "${./homepage/services.yaml}:/app/config/services.yaml:ro"
+      "${./homepage/widgets.yaml}:/app/config/widgets.yaml:ro"
+      "${./homepage/bookmarks.yaml}:/app/config/bookmarks.yaml:ro"
+      "/srv:/pool:ro"                # media pool (mergerfs union) — headline number
+      "/mnt/disk-boot:/disk-boot:ro" # OS/root-disk branch (the one that fills and breaks the CT)
+      "/mnt/disk-usb:/disk-usb:ro"   # USB branch
+    ];
+    # The image's HEALTHCHECK probes localhost:3000 immediately on boot and loses
+    # the race while the app is still starting, so the transient healthcheck unit
+    # fails and makes `nixos-rebuild switch` return exit 4 even though the container
+    # is fine. Drop the healthcheck — the container's own restart policy covers it.
+    extraOptions = [ "--no-healthcheck" ];
   };
 
   # Live TV: regenerate the curated IPTV playlist daily (iptv-org stream URLs drift).
@@ -187,9 +224,9 @@ in
   };
 
   # LAN access: web UIs, Jellyfin, DLNA discovery (UDP), the *arr apps,
-  # lazylibrarian, suggestarr. (Byparr stays on localhost.)
+  # lazylibrarian, homepage (80). (Byparr stays on localhost.)
   networking.firewall = {
-    allowedTCPPorts = [ 8096 8920 8989 7878 9696 8080 6767 5055 5299 5000 ];
+    allowedTCPPorts = [ 80 8096 8920 8989 7878 9696 8080 6767 5055 5299 ];
     allowedUDPPorts = [ 1900 7359 ];
   };
 }

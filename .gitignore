@@ -36,3 +36,7 @@ id_ed25519
 
 # OS noise
 .DS_Store
+
+# Homepage dashboard config that embeds *arr/service API keys (deployed via the
+# working-tree tar in scripts/apply-nixos.sh, but kept out of git).
+nix/hosts/homepage/services.yaml

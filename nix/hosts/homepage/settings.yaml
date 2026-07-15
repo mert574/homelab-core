@@ -1,0 +1,17 @@
+title: Mertflix
+theme: dark
+color: slate
+headerStyle: boxed
+layout:
+  Watch & Request:
+    style: row
+    columns: 2
+  Downloads:
+    style: row
+    columns: 2
+  Automation:
+    style: row
+    columns: 3
+  Extras:
+    style: row
+    columns: 1
