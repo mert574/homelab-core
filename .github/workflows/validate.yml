@@ -75,7 +75,9 @@ jobs:
             .#nixosConfigurations.postgres.config.system.build.toplevel \
             .#nixosConfigurations.cloudflared.config.system.build.toplevel \
             .#nixosConfigurations.garage.config.system.build.toplevel \
-            .#nixosConfigurations.media.config.system.build.toplevel
+            .#nixosConfigurations.media.config.system.build.toplevel \
+            .#nixosConfigurations.ccflare.config.system.build.toplevel \
+            .#nixosConfigurations.vaultwarden.config.system.build.toplevel
 
   # Push the built host closures to the LAN Garage Nix cache so a re-apply pulls
   # them prebuilt. Runs on the in-cluster self-hosted runner, which reaches Garage
@@ -85,7 +87,7 @@ jobs:
   nix-cache-push:
     if: vars.HOMELAB_RUNNER == 'true'
     needs: nix-build
-    runs-on: [self-hosted, homelab]
+    runs-on: homelab-core
     steps:
       - uses: actions/checkout@v5
       - uses: cachix/install-nix-action@v30
@@ -93,14 +95,11 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-      # NOTE: when you enable this job, replace this with the REAL secrets/*.enc on
-      # the runner. Dummy/empty files build closures that don't match the hosts
-      # (sops-nix bakes the sops file into the closure), so they'd be wrong to push.
-      - name: placeholder secret files
-        run: |
-          touch secrets/homelab.enc.env secrets/mullvad.wg.enc \
-                secrets/cloudflared.creds.enc
-          git add -A
+      # The real encrypted secrets (homelab.enc.env, mullvad.wg.enc,
+      # cloudflared.creds.enc) are committed, so checkout already has them and the
+      # closures built here match what the hosts build (sops-nix bakes the sops
+      # file into the closure). Do NOT touch/empty them — empty files build
+      # mismatched closures that would poison the cache.
       - name: sign + push host closures to Garage
         env:
           # Garage access key for the nix-cache bucket, and the cache signing key
@@ -121,7 +120,9 @@ jobs:
             .#nixosConfigurations.postgres.config.system.build.toplevel \
             .#nixosConfigurations.cloudflared.config.system.build.toplevel \
             .#nixosConfigurations.garage.config.system.build.toplevel \
-            .#nixosConfigurations.media.config.system.build.toplevel
+            .#nixosConfigurations.media.config.system.build.toplevel \
+            .#nixosConfigurations.ccflare.config.system.build.toplevel \
+            .#nixosConfigurations.vaultwarden.config.system.build.toplevel
 
   k8s:
     runs-on: ubuntu-latest

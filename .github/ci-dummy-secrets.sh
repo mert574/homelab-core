@@ -20,7 +20,7 @@ printf '%s\n' \
 sops -e --input-type dotenv --output-type dotenv "$keydir/h.env" > secrets/homelab.enc.env
 
 # whole-file binary secrets
-for f in cloudflared.creds mullvad.wg; do
+for f in cloudflared.creds mullvad.wg homepage-services; do
   printf x | sops -e --input-type binary --output-type binary /dev/stdin > "secrets/$f.enc"
 done
 

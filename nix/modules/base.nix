@@ -18,15 +18,20 @@ in
 
   # flakes, so `nixos-rebuild --flake` works without the extra flag.
   #
-  # The LAN Garage cache (an extra substituter) is left out until Garage is up and
-  # we have a real signing key. First bring-up builds locally, which it would do
-  # anyway. To turn it on later: generate a key with
-  # `nix-store --generate-binary-cache-key`, then add back
-  #   substituters = lib.mkAfter [ "http://nix-cache.garage.internal:3902" ];
-  #   trusted-public-keys = lib.mkAfter [ "nix-cache:<the-real-base64-public-key>" ];
-  #   fallback = true; connect-timeout = 5;
+  # The LAN Garage cache is an extra substituter: re-applies pull host closures
+  # prebuilt (CI signs + pushes them, .github/workflows/validate.yml) instead of
+  # rebuilding on each box. mkAfter keeps cache.nixos.org first, so upstream paths
+  # come from there and our host closures from Garage. fallback + a short
+  # connect-timeout mean a cache miss (or an unreachable cache, e.g. the ai box on
+  # the isolated bridge) just builds locally instead of hanging. The public key is
+  # the half of the `nix-store --generate-binary-cache-key nix-cache` pair; its
+  # secret half is the sops NIX_CACHE_SIGNING_KEY / GitHub secret that CI signs with.
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
+    substituters = lib.mkAfter [ "http://nix-cache.garage.internal:3902" ];
+    trusted-public-keys = lib.mkAfter [ "nix-cache:4PcFYVVhXuMebUpZjPR2BZTWYs+ZtJUPgZNEnYguWyA=" ];
+    fallback = true;
+    connect-timeout = 5;
   };
 
   # Every host resolves the LAN names from the one central file (the same file is

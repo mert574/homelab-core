@@ -60,16 +60,24 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
       Garage's web port that turns deep-route 404s into `index.html` (200); add a
       new SPA host to `spaHosts` there. Only the `pulse-web` push key stays manual
       (`cluster/apps/pulse/README.md`).
-- [ ] **Nix binary cache (Garage)**: lets re-applies pull host closures prebuilt
-      instead of rebuilding on each box (first boot still builds locally, that's
-      fine). The bucket/DNS/key are all in code; only the secret values are yours:
-  - `nix-store --generate-binary-cache-key nix-cache nix-cache.secret nix-cache.public`,
-    then put `nix-cache.public` in `nix/modules/base.nix` (`trusted-public-keys`)
-    and `nix-cache.secret` in the GitHub secret `NIX_CACHE_SIGNING_KEY`
-  - fill `NIX_CACHE_S3_ACCESS_KEY` / `NIX_CACHE_S3_SECRET_KEY` in the sops env AND
-    as GitHub secrets (same values: garage imports them, CI pushes with them)
-  - once the in-cluster runner exists, set repo variable `HOMELAB_RUNNER=true` to
-    activate the `nix-cache-push` job
+- [x] **Nix binary cache (Garage)**: re-applies pull host closures prebuilt from
+      `http://nix-cache.garage.internal:3902` instead of rebuilding on each box
+      (a cache miss / unreachable cache still builds locally — `fallback = true`).
+      Done:
+  - signing keypair generated; public key `nix-cache:4PcFYVVhXuMebUpZjPR2BZTWYs+ZtJUPgZNEnYguWyA=`
+    is in `nix/modules/base.nix` (`trusted-public-keys` + the substituter, now
+    enabled); secret half is the sops `NIX_CACHE_SIGNING_KEY` and the GitHub secret
+    of the same name.
+  - `NIX_CACHE_S3_ACCESS_KEY` / `NIX_CACHE_S3_SECRET_KEY` are in the sops env and set
+    as GitHub secrets.
+  - bucket populated by pushing closures from the Proxmox host (real committed
+    secrets → closures match the CTs): `nix copy --to
+    's3://nix-cache?endpoint=http://192.168.178.109:3900&region=eu-central&secret-key=<keyfile>'`
+    with `AWS_ACCESS_KEY_ID/SECRET` = the NIX_CACHE_S3 values.
+  - STILL PENDING: no self-hosted runner is registered, so the CI `nix-cache-push`
+    job stays dormant. When the `homelab`-labelled runner is up, set repo variable
+    `HOMELAB_RUNNER=true` to automate the push (its secret handling is already
+    corrected in `.github/workflows/validate.yml`).
 - [ ] **Personal site (blog + portfolio, repo `mert574/blog`)**: bucket, aliases,
       website and the CI write key are all in code (`scripts/garage-setup.sh`,
       served at `mert574.dev` + `www`). Only the secret values and the runner are

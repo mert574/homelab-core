@@ -101,8 +101,10 @@ in
   # Create library dirs group-writable (0002) so Jellyfin (group media) can delete
   # imported files. Default umask 022 makes drwxr-sr-x dirs that block group deletes
   # -> Jellyfin DELETE fails with "Permission denied". Matches qBittorrent's UMask.
-  systemd.services.sonarr.serviceConfig.UMask = "0002";
-  systemd.services.radarr.serviceConfig.UMask = "0002";
+  # mkForce: recent nixpkgs servarr modules default UMask to "0022"; we override
+  # to "0002" so *arr-written files stay group-writable for the media group.
+  systemd.services.sonarr.serviceConfig.UMask = lib.mkForce "0002";
+  systemd.services.radarr.serviceConfig.UMask = lib.mkForce "0002";
   services.bazarr = { enable = true; group = "media"; }; # subtitles (6767)
   services.seerr.enable = true; # jellyseerr: requests + discovery front-end (5055)
 
@@ -173,6 +175,16 @@ in
   # Homepage: the household "home page" — at-a-glance disk space + links to
   # Jellyfin (watch) and Jellyseerr (request), the only two apps the end user
   # touches. Served on port 80 so it's just http://media.internal. The disk
+  # services.yaml embeds *arr API keys, so it's a sops secret rather than a
+  # tracked file baked into the store. mode 0444 matches how the plaintext used to
+  # sit (world-readable) in /nix/store, so the container's PUID 1000 can read the
+  # bind-mounted path. The other homepage yamls have no secrets and stay in-repo.
+  sops.secrets."homepage-services" = {
+    format = "binary";
+    sopsFile = ../../secrets/homepage-services.enc;
+    mode = "0444";
+  };
+
   # widgets read the two physical pool branches (real ext4, reliable statvfs)
   # plus the mergerfs union for the aggregate figure — see homepage/widgets.yaml.
   virtualisation.oci-containers.containers.homepage = {
@@ -188,7 +200,7 @@ in
     volumes = [
       "homepage-config:/app/config"                               # writable: logs + generated files
       "${./homepage/settings.yaml}:/app/config/settings.yaml:ro"  # declarative config (tracks repo)
-      "${./homepage/services.yaml}:/app/config/services.yaml:ro"
+      "${config.sops.secrets."homepage-services".path}:/app/config/services.yaml:ro"
       "${./homepage/widgets.yaml}:/app/config/widgets.yaml:ro"
       "${./homepage/bookmarks.yaml}:/app/config/bookmarks.yaml:ro"
       "/srv:/pool:ro"                # media pool (mergerfs union) — headline number
