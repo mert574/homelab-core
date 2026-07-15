@@ -42,6 +42,12 @@ for entry in "${cts[@]}"; do
   fi
   pct push "$vmid" "$HOSTS_FILE" /tmp/lan-hosts
   pct exec "$vmid" -- bash -c "$applier"
+  # pihole-FTL only reads /etc/hosts at start / on SIGHUP, so without this a newly
+  # added name stays unresolved for LAN clients even though it's in the file.
+  if [ "$name" = pihole ]; then
+    pct exec "$vmid" -- pkill -HUP pihole-FTL 2>/dev/null || true
+    echo "  reloaded pihole-FTL"
+  fi
 done
 
 for entry in "${vms[@]}"; do
