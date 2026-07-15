@@ -1,5 +1,7 @@
-# Custom self-hosted runner labels actionlint can't know about. The homelab
-# runner is the in-cluster ARC runner that pushes the Nix cache to Garage.
+# Custom self-hosted runner labels actionlint can't know about. The homelab*
+# runners are in-cluster ARC scale sets (one per repo, personal account); the
+# homelab-core one runs this repo's nix-cache-push job.
 self-hosted-runner:
   labels:
     - homelab
+    - homelab-core
