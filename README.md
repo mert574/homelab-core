@@ -80,7 +80,7 @@ On-demand guests, not autostarted, so ~0 RAM at rest; start one when you need it
 | admin             | LXC  | 2    | 1GB | NixOS break-glass shell    |
 | ai                | LXC  | 2    | 2GB | NixOS AI sandbox, isolated |
 | playground        | LXC  | 2    | 2GB | NixOS scratch box          |
-| playground-debian | LXC  | 2    | 2GB | Debian FHS twin            |
+| playground-debian | LXC  | 2    | 2GB | Debian scratch box         |
 
 With only ~1.5GB free we're at the 16GB wall, so run one heavy on-demand box at a
 time. A few GB of SSD swap (or zram, `vm.swappiness=10`) absorbs spikes, but don't
@@ -102,7 +102,7 @@ install answer file, Layer 0-1, not by OpenTofu).
 | `.104`            | k3s VM                                       |
 | `.105`            | admin (LXC, NixOS) - break-glass shell      |
 | `.107`            | playground (LXC, NixOS) - scratch box       |
-| `.108`            | playground-debian (LXC, Debian) - FHS twin  |
+| `.108`            | playground-debian (LXC, Debian) - scratch box |
 | `.109`            | garage (LXC, NixOS) - S3 + static hosting   |
 | `.110`            | media (LXC, NixOS) - Jellyfin + *arr + scripts |
 | `.111`            | ccflare (LXC, NixOS) - Anthropic/OpenAI proxy  |

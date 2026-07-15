@@ -1,5 +1,5 @@
 # Playground: NixOS scratch box (full dev kit + ffmpeg, ../nix/hosts/playground.nix).
-# Experiment and nuke freely. Unprivileged, on-demand. Debian twin: playground-debian.tf.
+# Experiment and nuke freely. Unprivileged, on-demand. Debian counterpart: playground-debian.tf.
 
 resource "proxmox_virtual_environment_container" "playground" {
   node_name = var.pve_node

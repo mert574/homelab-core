@@ -1,6 +1,6 @@
-# Playground (Debian): plain-FHS twin of the NixOS playground for tools that don't
-# like Nix. Unprivileged, on-demand. No cloud-init runcmd on LXC, so its toolset
-# installs via ../scripts/playground-debian-setup.sh.
+# Playground (Debian): a Debian counterpart of the NixOS playground scratch box.
+# Unprivileged, on-demand. No cloud-init runcmd on LXC, so its toolset installs
+# via ../scripts/playground-debian-setup.sh.
 
 resource "proxmox_virtual_environment_container" "playground_debian" {
   node_name = var.pve_node
