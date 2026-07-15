@@ -1,0 +1,73 @@
+# LibreChat's core datastore. MongoDB is mandatory — LibreChat has no Postgres
+# option for the primary store (Postgres/pgvector only backs the optional RAG API,
+# which we don't run). Internal-only: no Service exposure beyond the cluster, run
+# with --noauth since nothing outside the namespace can reach it. Durable on a
+# local-path PVC so chat history survives pod restarts.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-data
+  namespace: librechat
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  namespace: librechat
+spec:
+  replicas: 1
+  strategy: { type: Recreate } # RWO volume: never two pods mounting at once
+  selector:
+    matchLabels: { app: mongodb }
+  template:
+    metadata:
+      labels: { app: mongodb }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999   # the mongodb user in the official image
+        fsGroup: 999     # own the PVC so mongod can write /data/db
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: mongodb
+          image: mongo:8.0.20
+          args: ["--noauth", "--bind_ip_all"]
+          ports:
+            - containerPort: 27017
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+          volumeMounts:
+            - { name: data, mountPath: /data/db }
+          livenessProbe:
+            tcpSocket: { port: 27017 }
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          readinessProbe:
+            tcpSocket: { port: 27017 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 1Gi }
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mongodb-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: librechat
+spec:
+  selector: { app: mongodb }
+  ports:
+    - port: 27017
+      targetPort: 27017

@@ -1,0 +1,36 @@
+# Non-secret LibreChat config. The credential/JWT keys come from the
+# `librechat-secrets` Secret that create-secrets.sh builds from the encrypted env.
+#
+# Model backend: ccflare (CT 111) proxies our Claude subscription (accounts are
+# `provider: claude-code`, OAuth). The subscription gates Opus/Sonnet behind the
+# Claude Code identity (a specific system prompt + anthropic-beta header); ccflare
+# only injects that on its COMPAT route `/v1/ccflare/openai/chat/completions`, not on
+# the raw `/v1/claude-code` route. So the model wiring lives in librechat.yaml as a
+# custom OpenAI endpoint pointing there, with models prefixed `anthropic/` (ccflare
+# routes by that prefix). See librechat-file.yaml and README.md.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: librechat-config
+  namespace: librechat
+data:
+  HOST: "0.0.0.0"
+  PORT: "3080"
+  MONGO_URI: "mongodb://mongodb:27017/LibreChat"
+  DOMAIN_CLIENT: "https://ai.mert574.dev"
+  DOMAIN_SERVER: "https://ai.mert574.dev"
+  # Behind cloudflared + the Cilium Gateway, so trust the proxy chain for client IPs.
+  TRUST_PROXY: "1"
+  # Meilisearch not deployed; disable message search so the app doesn't retry it.
+  SEARCH: "false"
+  # Registration is closed: only existing accounts can log in. To add a user, either
+  # flip this to "true" briefly, or use LibreChat's user-management (admin panel / CLI).
+  ALLOW_REGISTRATION: "false"
+  ALLOW_EMAIL_LOGIN: "true"
+  ALLOW_SOCIAL_LOGIN: "false"
+  ALLOW_PASSWORD_RESET: "false"
+  # The model backend (the "Claude (ccflare)" custom endpoint) is defined in
+  # librechat.yaml (mounted at /app/librechat.yaml). No ANTHROPIC_API_KEY here on
+  # purpose: it would light up a native Anthropic endpoint pointing at the real API
+  # with a dummy key.
+  CONFIG_PATH: "/app/librechat.yaml"

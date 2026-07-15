@@ -1,22 +1,11 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: librechat-config
-  namespace: librechat
-data:
-  ALLOW_EMAIL_LOGIN: "true"
-  ALLOW_PASSWORD_RESET: "false"
-  ALLOW_REGISTRATION: "false"
-  ALLOW_SOCIAL_LOGIN: "false"
-  CONFIG_PATH: /app/librechat.yaml
-  DOMAIN_CLIENT: https://ai.mert574.dev
-  DOMAIN_SERVER: https://ai.mert574.dev
-  HOST: 0.0.0.0
-  MONGO_URI: mongodb://mongodb:27017/LibreChat
-  PORT: "3080"
-  SEARCH: "false"
-  TRUST_PROXY: "1"
----
+# The librechat.yaml app config, mounted at /app/librechat.yaml (CONFIG_PATH).
+# Defines a single custom (OpenAI-format) endpoint pointing at ccflare's COMPAT
+# route. ccflare translates OpenAI<->Anthropic, routes anthropic/* models to the
+# claude-code (OAuth) accounts, and injects the Claude Code identity (system prompt
+# + anthropic-beta header) so Opus/Sonnet are authorized — which the raw
+# /v1/claude-code route does NOT do. Models MUST carry the `anthropic/` prefix:
+# ccflare picks the provider family from it. apiKey is a throwaway (ccflare uses its
+# own OAuth accounts).
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -33,33 +22,33 @@ data:
           baseURL: "http://192.168.178.111:8080/v1/ccflare/openai"
           models:
             default:
-              - "anthropic/claude-sonnet-5"
-              - "anthropic/claude-fable-5"
+              - "anthropic/claude-opus-4-8"
+              - "anthropic/claude-sonnet-4-5-20250929"
               - "anthropic/claude-haiku-4-5-20251001"
             fetch: false
           titleConvo: true
           titleModel: "anthropic/claude-haiku-4-5-20251001"
           modelDisplayLabel: "Claude"
-    # Presets so a model is ALWAYS selected (no "send with nothing chosen"). Sonnet 5
+    # Presets so a model is ALWAYS selected (no "send with nothing chosen"). Opus 4.8
     # is the default; the header dropdown switches between the three. prioritize:true
     # keeps a spec selected and hides the empty Agents state.
     modelSpecs:
       prioritize: true
       enforce: false
       list:
-        - name: "sonnet-5"
-          label: "Claude Sonnet 5"
+        - name: "opus-4-8"
+          label: "Claude Opus 4.8"
           default: true
-          description: "Most capable, default"
+          description: "Most capable — default"
           preset:
             endpoint: "Claude (ccflare)"
-            model: "anthropic/claude-sonnet-5"
-        - name: "fable-5"
-          label: "Claude Fable 5"
+            model: "anthropic/claude-opus-4-8"
+        - name: "sonnet-4-5"
+          label: "Claude Sonnet 4.5"
           description: "Balanced speed and quality"
           preset:
             endpoint: "Claude (ccflare)"
-            model: "anthropic/claude-fable-5"
+            model: "anthropic/claude-sonnet-4-5-20250929"
         - name: "haiku-4-5"
           label: "Claude Haiku 4.5"
           description: "Fast and cheap"
