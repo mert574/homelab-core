@@ -27,10 +27,11 @@
 #   (`/var/lib/ccflare/src/docs/`).
 { config, pkgs, lib, ... }:
 let
-  # ccflare packaged as an immutable /nix/store derivation (built once in CI,
-  # substituted from the Garage cache). Bump the ref + hashes in this file to
-  # update; a rebuild NEVER builds from source on the box, so a service restart
-  # is just a process restart -- it can no longer trigger a multi-hour bun build.
+  # ccflare packaged as an immutable /nix/store derivation (built once, its full
+  # closure pushed to the Garage cache -- verified present + signed, all 8 paths
+  # incl. the ccflare-tree FOD). Bump the ref + hashes in this file to update; a
+  # rebuild NEVER builds from source on the box (it substitutes from Garage), so a
+  # service restart is just a process restart -- no multi-hour bun build.
   ccflare = pkgs.callPackage ../pkgs/ccflare.nix { };
   stateDir = "/var/lib/ccflare";
 in
