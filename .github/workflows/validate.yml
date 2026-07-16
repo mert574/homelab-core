@@ -89,6 +89,10 @@ jobs:
     needs: nix-build
     runs-on: homelab-core
     steps:
+      # The ARC runner image is minimal; install-nix-action needs xz to unpack
+      # the Nix tarball, and git for actions/checkout's tree handling.
+      - name: install unpack deps (minimal runner image)
+        run: sudo apt-get update && sudo apt-get install -y xz-utils git
       - uses: actions/checkout@v5
       - uses: cachix/install-nix-action@v30
         with:
