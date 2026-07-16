@@ -27,18 +27,21 @@
 #   (`/var/lib/ccflare/src/docs/`).
 { config, pkgs, lib, ... }:
 let
-  # Pin ccflare to a known-good commit; bump this to update. A rebuild re-fetches
-  # and rebuilds only when the ref (or the built dashboard) changed.
-  ccflareRef = "95c4c6a12d11598386333972e04cf1567c5a1298";
+  # ccflare packaged as an immutable /nix/store derivation (built once in CI,
+  # substituted from the Garage cache). Bump the ref + hashes in this file to
+  # update; a rebuild NEVER builds from source on the box, so a service restart
+  # is just a process restart -- it can no longer trigger a multi-hour bun build.
+  ccflare = pkgs.callPackage ../pkgs/ccflare.nix { };
   stateDir = "/var/lib/ccflare";
-  srcDir = "${stateDir}/src";
 in
 {
   imports = [ ../modules/base.nix ];
   networking.interfaces.eth0.ipv4.addresses = [{ address = "192.168.178.111"; prefixLength = 24; }];
 
-  # bun is the runtime + package manager; git fetches the source.
-  environment.systemPackages = with pkgs; [ bun git ];
+  # bun on PATH for operator convenience (inspecting the DB, ad-hoc scripts). The
+  # service runs the packaged binary, which carries its own bun; this isn't wired
+  # into the service.
+  environment.systemPackages = [ pkgs.bun ];
 
   # Dedicated service account; its home is the state dir (bun's cache lives there).
   users.users.ccflare = {
@@ -48,40 +51,11 @@ in
   };
   users.groups.ccflare = { };
 
-  # Fetch + build ccflare at the pinned ref. Oneshot, ordered before the server,
-  # idempotent (re-runs safely on every boot; a no-op once built at that ref).
-  systemd.services.ccflare-setup = {
-    description = "Fetch and build ccflare at the pinned ref";
-    after = [ "network-online.target" ];
-    wants = [ "network-online.target" ];
-    before = [ "ccflare.service" ];
-    wantedBy = [ "multi-user.target" ];
-    path = [ pkgs.bun pkgs.git pkgs.cacert pkgs.coreutils ];
-    environment = {
-      HOME = stateDir;
-      CCFLARE_REF = ccflareRef;
-      GIT_SSL_CAINFO = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
-    };
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      User = "ccflare";
-      Group = "ccflare";
-      StateDirectory = "ccflare";
-      WorkingDirectory = stateDir;
-      ExecStart = "${pkgs.bash}/bin/bash ${../../scripts/ccflare-setup.sh}";
-      # First build clones the repo + resolves the whole bun workspace; give it room.
-      TimeoutStartSec = "1800";
-    };
-  };
-
-  # The proxy + dashboard. Runs the built server from the source tree.
+  # The proxy + dashboard. Runs the packaged server straight from /nix/store.
   systemd.services.ccflare = {
     description = "ccflare proxy + dashboard";
-    after = [ "network.target" "ccflare-setup.service" ];
-    requires = [ "ccflare-setup.service" ];
+    after = [ "network.target" ];
     wantedBy = [ "multi-user.target" ];
-    path = [ pkgs.bun pkgs.git ];
     environment = {
       HOME = stateDir;
       PORT = "8080";
@@ -96,8 +70,7 @@ in
       User = "ccflare";
       Group = "ccflare";
       StateDirectory = "ccflare";
-      WorkingDirectory = srcDir;
-      ExecStart = "${pkgs.bun}/bin/bun run start";
+      ExecStart = lib.getExe ccflare;
       Restart = "on-failure";
       RestartSec = "5";
     };
