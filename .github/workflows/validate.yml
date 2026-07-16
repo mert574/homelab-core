@@ -127,16 +127,20 @@ jobs:
           printf '%s' "$NIX_CACHE_SIGNING_KEY" > "$keyfile"
           trap 'rm -f "$keyfile"' EXIT
           store="s3://nix-cache?endpoint=http://192.168.178.109:3900&region=eu-central&secret-key=$keyfile"
-          nix copy --to "$store" \
-            .#nixosConfigurations.admin.config.system.build.toplevel \
-            .#nixosConfigurations.ai.config.system.build.toplevel \
-            .#nixosConfigurations.playground.config.system.build.toplevel \
-            .#nixosConfigurations.postgres.config.system.build.toplevel \
-            .#nixosConfigurations.cloudflared.config.system.build.toplevel \
-            .#nixosConfigurations.garage.config.system.build.toplevel \
-            .#nixosConfigurations.media.config.system.build.toplevel \
-            .#nixosConfigurations.ccflare.config.system.build.toplevel \
-            .#nixosConfigurations.vaultwarden.config.system.build.toplevel
+          # This ephemeral runner shares the memory-starved k3s node (VM 104,
+          # ~100% RAM). Realizing all 9 closures in one `nix copy` builds the
+          # combined graph in parallel (max-jobs = cpu count) and OOM-kills the
+          # node. Push one host at a time with max-jobs 1 so peak memory is a
+          # single closure's build, not nine at once. The Garage substituter
+          # (extra-substituters above) + cache.nixos.org supply everything
+          # already built, so most hosts only fetch; --max-jobs 1 just caps the
+          # few config derivations that genuinely rebuild after a module change.
+          for host in admin ai playground postgres cloudflared garage media ccflare vaultwarden; do
+            echo "::group::push $host"
+            nix copy --max-jobs 1 --cores 2 --to "$store" \
+              ".#nixosConfigurations.$host.config.system.build.toplevel"
+            echo "::endgroup::"
+          done
 
   k8s:
     runs-on: ubuntu-latest
