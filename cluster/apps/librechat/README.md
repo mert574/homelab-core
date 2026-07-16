@@ -26,8 +26,13 @@ real.
 - `httproute.yaml` - `ai.mert574.dev` + `librechat.k3s.internal` through the
   Cilium Gateway, same pattern as Activepieces and Pulse.
 - `create-secrets.sh` - builds `librechat-secrets` (JWT/CREDS keys) from the
-  env, resets the real login's password to a freshly generated one (never the
-  password that was live before this), and mirrors it into Vaultwarden.
+  env. Secrets only; it does not touch the user DB.
+- `seed-user.sh` - creates (or resets) the single login and mirrors a freshly
+  generated password into the Vaultwarden `homelab` folder. Registration is
+  closed, so without this there is no account to log in with and every attempt
+  returns "Email does not exist". Run it once the app is up (it execs the app's
+  user CLI against the live Mongo). Email comes from `LIBRECHAT_ADMIN_EMAIL` in
+  the sops secret.
 
 ## First deploy (once, adopting the existing live app)
 
@@ -37,6 +42,9 @@ real.
 3. Watch `kubectl get pods -n librechat` during the first sync - expect no
    crash loops and the existing chat history to still be there once
    `librechat` is `Running` again (proves the PVC was adopted, not recreated).
-4. The Cloudflare tunnel route for `ai.mert574.dev` needs
+4. `./seed-user.sh` once `librechat` is `Running`, to create the login and
+   store its password in Vaultwarden. Skip only if the adopted DB already has
+   the user (`npm run list-users`). Re-run any time to rotate the password.
+5. The Cloudflare tunnel route for `ai.mert574.dev` needs
    `nixos-rebuild switch` on the cloudflared LXC to pick up the
    `nix/hosts/cloudflared.nix` change - that's a manual step, not automatic.
