@@ -88,6 +88,12 @@ jobs:
     if: vars.HOMELAB_RUNNER == 'true'
     needs: nix-build
     runs-on: homelab-core
+    # The ephemeral ARC runner starts with an empty store. Without the Garage
+    # substituter it rebuilds every host closure locally on a resource-limited
+    # pod, which runs long enough to get OOM-killed mid-push. Pulling the
+    # prebuilt closures from the cache (below) keeps this to seconds; the guard
+    # fails fast instead of grinding if the cache ever misses.
+    timeout-minutes: 20
     steps:
       # The ARC runner image is minimal; install-nix-action needs xz to unpack
       # the Nix tarball, and git for actions/checkout's tree handling.
@@ -99,6 +105,10 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            extra-substituters = http://nix-cache.garage.internal:3902
+            extra-trusted-public-keys = nix-cache:4PcFYVVhXuMebUpZjPR2BZTWYs+ZtJUPgZNEnYguWyA=
+            fallback = true
+            connect-timeout = 5
       # The real encrypted secrets (homelab.enc.env, mullvad.wg.enc,
       # cloudflared.creds.enc) are committed, so checkout already has them and the
       # closures built here match what the hosts build (sops-nix bakes the sops
