@@ -128,24 +128,21 @@ jobs:
           trap 'rm -f "$keyfile"' EXIT
           store="s3://nix-cache?endpoint=http://192.168.178.109:3900&region=eu-central&secret-key=$keyfile"
           # This ephemeral runner shares the memory-starved k3s node (VM 104,
-          # ~100% RAM). The original OOM came from realizing the closures with
-          # max-jobs = cpu count (nine parallel builds). --max-jobs 1 alone caps
-          # that to one build at a time, so a single invocation is memory-safe
-          # AND evaluates the 9 configs once (a per-host loop re-evaluates the
-          # whole flake 9x -- pure overhead, since eval isn't cache-substitutable).
+          # ~100% RAM). Two memory limits both matter here:
+          #   - --max-jobs 1 serializes builds (a parallel realize OOMs the node).
+          #   - one host PER `nix copy` invocation, so each host's eval memory is
+          #     freed before the next. A single multi-target invocation keeps all
+          #     9 NixOS configs resident at once (~5 GiB peak) and starved the k3s
+          #     control plane into a full API outage -- do NOT recombine these.
           # The Garage substituter + cache.nixos.org supply everything prebuilt,
-          # so a warm cache only fetches; --max-jobs 1 just caps the few config
-          # derivations that genuinely rebuild after a module change.
-          nix copy --max-jobs 1 --cores 2 --to "$store" \
-            .#nixosConfigurations.admin.config.system.build.toplevel \
-            .#nixosConfigurations.ai.config.system.build.toplevel \
-            .#nixosConfigurations.playground.config.system.build.toplevel \
-            .#nixosConfigurations.postgres.config.system.build.toplevel \
-            .#nixosConfigurations.cloudflared.config.system.build.toplevel \
-            .#nixosConfigurations.garage.config.system.build.toplevel \
-            .#nixosConfigurations.media.config.system.build.toplevel \
-            .#nixosConfigurations.ccflare.config.system.build.toplevel \
-            .#nixosConfigurations.vaultwarden.config.system.build.toplevel
+          # so a warm cache only fetches; --max-jobs 1 caps the few config
+          # derivations that rebuild after a module change.
+          for host in admin ai playground postgres cloudflared garage media ccflare vaultwarden; do
+            echo "::group::push $host"
+            nix copy --max-jobs 1 --cores 2 --to "$store" \
+              ".#nixosConfigurations.$host.config.system.build.toplevel"
+            echo "::endgroup::"
+          done
 
   k8s:
     runs-on: ubuntu-latest
