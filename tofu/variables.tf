@@ -60,7 +60,7 @@ variable "ct_root_password" {
   sensitive   = true
 }
 
-# Container OS template for the Debian guests (pihole, playground-debian).
+# Container OS template for the Debian guests (pihole).
 # No version hardcoded: bootstrap.sh detects the current debian-13-standard and
 # writes the exact volume id to tofu/debian_template.auto.tfvars, which tofu loads
 # automatically. The containers also ignore_changes on this, so a later point
@@ -101,18 +101,6 @@ variable "admin_ip" {
   default     = "192.168.178.105/24"
 }
 
-variable "playground_ip" {
-  type        = string
-  description = "Static IPv4 for the NixOS playground LXC"
-  default     = "192.168.178.107/24"
-}
-
-variable "playground_debian_ip" {
-  type        = string
-  description = "Static IPv4 for the Debian playground LXC"
-  default     = "192.168.178.108/24"
-}
-
 variable "garage_ip" {
   type        = string
   description = "Static IPv4 for the Garage object storage LXC"
@@ -123,12 +111,6 @@ variable "media_ip" {
   type        = string
   description = "Static IPv4 for the media / mixed-use LXC"
   default     = "192.168.178.110/24"
-}
-
-variable "ccflare_ip" {
-  type        = string
-  description = "Static IPv4 for the ccflare proxy LXC"
-  default     = "192.168.178.111/24"
 }
 
 variable "vaultwarden_ip" {

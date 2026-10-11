@@ -9,14 +9,10 @@
 192.168.178.103  cloudflared.internal
 192.168.178.104  k3s.internal
 192.168.178.105  admin.internal
-192.168.178.107  playground.internal
-192.168.178.108  playground-debian.internal
 192.168.178.109  garage.internal nix-cache.garage.internal
 192.168.178.110  media.internal
-192.168.178.111  ccflare.internal
 192.168.178.112  vaultwarden.internal
 192.168.178.200  ap.k3s.internal
-192.168.178.200  librechat.k3s.internal
 # ai is on the isolated 10.10.10.0/24 bridge (vmbr1), not routable from the LAN and
 # using public DNS, so it is intentionally left out here.
 # convention: every app running in k3s (not the VM itself) gets a *.k3s.internal

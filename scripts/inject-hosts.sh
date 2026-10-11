@@ -9,8 +9,8 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HOSTS_FILE="$REPO_ROOT/nix/lan-hosts"
 
-# Debian LXCs (pihole, playground-debian) by vmid.
-cts=( "pihole=101" "playground-debian=108" )
+# Debian LXCs (pihole) by vmid.
+cts=( "pihole=101" )
 # VMs (k3s) by vmid; needs the qemu guest agent (enabled in tofu/k3s.tf).
 vms=( "k3s=104" )
 
@@ -35,7 +35,7 @@ bash -c "$applier"
 for entry in "${cts[@]}"; do
   name="${entry%%=*}"; vmid="${entry#*=}"
   echo "== $name (CT $vmid) =="
-  # on-demand CTs (playground-debian) may be stopped; skip rather than fail.
+  # on-demand CTs may be stopped; skip rather than fail.
   if ! pct status "$vmid" 2>/dev/null | grep -q running; then
     echo "  not running, skipping (re-run this once it's up)"
     continue

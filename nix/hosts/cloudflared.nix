@@ -2,8 +2,8 @@
 # code, not the dashboard. One tunnel serves every public hostname across both
 # zones (pulsepager.com and mert574.dev): Pulse via the Cilium Gateway, plus the
 # mert574.dev services below. Admin UIs (*arr, qBittorrent, etc.) stay
-# LAN-only on purpose; the admin surfaces we do expose (Proxmox, ccflare) sit
-# behind Cloudflare Access — see DEPLOY.md. Add a DNS route per hostname with
+# LAN-only on purpose; the admin surface we do expose (Proxmox) sits behind
+# Cloudflare Access — see DEPLOY.md. Add a DNS route per hostname with
 # `cloudflared tunnel route dns homelab <hostname>` (or the dashboard).
 { config, pkgs, lib, ... }:
 {
@@ -51,13 +51,9 @@
           service = "https://192.168.178.100:8006";
           originRequest.noTLSVerify = true;
         };
-        "ccflare.mert574.dev" = "http://192.168.178.111:8080";
         # Activepieces: routes through the Cilium Gateway like pulse's hostnames;
         # the in-cluster HTTPRoute in cluster/apps/activepieces splits by host.
         "ap.mert574.dev" = "http://192.168.178.200:80";
-        # LibreChat: same pattern, the in-cluster HTTPRoute (namespace librechat)
-        # already maps this host, the tunnel just never had an entry for it.
-        "ai.mert574.dev" = "http://192.168.178.200:80";
       };
     };
   };

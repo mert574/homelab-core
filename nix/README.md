@@ -4,10 +4,10 @@ The NixOS containers, declared once and reused.
 
 ```
 nix/
-  flake.nix          # nixosConfigurations: admin, ai, playground, postgres, cloudflared
+  flake.nix          # nixosConfigurations: admin, ai, postgres, cloudflared
   modules/
     base.nix         # shared: proxmox-lxc, ssh, user, zsh, base CLI kit, pbcopy
-    dev.nix          # full dev + cloud/k8s kit (admin, playground)
+    dev.nix          # full dev + cloud/k8s kit (admin)
     sops.nix         # sops-nix secret decryption (postgres, cloudflared)
   hosts/
     *.nix            # one per box: imports modules + its own packages
@@ -29,7 +29,7 @@ Proxmox ships none, so provide one (used via `var.nixos_ct_template`):
 ## Applying a host
 
 ```sh
-nixos-rebuild switch --flake .#admin   # or ai / playground / postgres / cloudflared
+nixos-rebuild switch --flake .#admin   # or ai / postgres / cloudflared
 ```
 
 ## Notes

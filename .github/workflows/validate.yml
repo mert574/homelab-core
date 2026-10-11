@@ -71,12 +71,10 @@ jobs:
           nix build --no-link --print-out-paths \
             .#nixosConfigurations.admin.config.system.build.toplevel \
             .#nixosConfigurations.ai.config.system.build.toplevel \
-            .#nixosConfigurations.playground.config.system.build.toplevel \
             .#nixosConfigurations.postgres.config.system.build.toplevel \
             .#nixosConfigurations.cloudflared.config.system.build.toplevel \
             .#nixosConfigurations.garage.config.system.build.toplevel \
             .#nixosConfigurations.media.config.system.build.toplevel \
-            .#nixosConfigurations.ccflare.config.system.build.toplevel \
             .#nixosConfigurations.vaultwarden.config.system.build.toplevel
 
   # Push the built host closures to the LAN Garage Nix cache so a re-apply pulls
@@ -132,12 +130,12 @@ jobs:
           #   - --max-jobs 1 serializes builds (a parallel realize OOMs the node).
           #   - one host PER `nix copy` invocation, so each host's eval memory is
           #     freed before the next. A single multi-target invocation keeps all
-          #     9 NixOS configs resident at once (~5 GiB peak) and starved the k3s
+          #     7 NixOS configs resident at once (~5 GiB peak) and starved the k3s
           #     control plane into a full API outage -- do NOT recombine these.
           # The Garage substituter + cache.nixos.org supply everything prebuilt,
           # so a warm cache only fetches; --max-jobs 1 caps the few config
           # derivations that rebuild after a module change.
-          for host in admin ai playground postgres cloudflared garage media ccflare vaultwarden; do
+          for host in admin ai postgres cloudflared garage media vaultwarden; do
             echo "::group::push $host"
             nix copy --max-jobs 1 --cores 2 --to "$store" \
               ".#nixosConfigurations.$host.config.system.build.toplevel"

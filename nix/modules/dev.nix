@@ -1,6 +1,6 @@
 # Shared dev + cloud/k8s toolset. Imported by the hosts that should have the full
-# kit (admin, playground). Host-specific or fast-moving tools (ffmpeg, the AI CLIs
-# from unstable) stay in the host files, not here.
+# kit (admin). Host-specific or fast-moving tools (ffmpeg, the AI CLIs from
+# unstable) stay in the host files, not here.
 { pkgs, ... }:
 {
   environment.systemPackages = with pkgs; [

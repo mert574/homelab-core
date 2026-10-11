@@ -6,7 +6,7 @@
 #
 # Public at https://pw.mert574.dev through the cloudflared tunnel (Cloudflare
 # terminates TLS; the LAN leg is plain HTTP on :8000). Clients authenticate with
-# Vaultwarden's own auth, so — unlike proxmox/ccflare — it is NOT behind
+# Vaultwarden's own auth, so — unlike proxmox — it is NOT behind
 # Cloudflare Access: the Access login page breaks the Bitwarden mobile/browser
 # API clients. Registration is closed; invite yourself from /admin (see DEPLOY.md).
 { config, pkgs, lib, ... }:

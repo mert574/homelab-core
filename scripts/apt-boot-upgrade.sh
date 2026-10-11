@@ -7,7 +7,7 @@
 set -euo pipefail
 
 # Debian LXCs (vmid) and Debian VMs (vmid).
-CTS=( "pihole=101" "playground-debian=108" )
+CTS=( "pihole=101" )
 VMS=( "k3s=104" )
 
 read -r -d '' UNIT <<'EOF' || true

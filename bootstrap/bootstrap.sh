@@ -116,7 +116,7 @@ ensure_templates() {
   # Proxmox `local` doesn't allow the snippets content type. Enable it.
   pvesm set local --content vztmpl,iso,backup,snippets 2>/dev/null || true
 
-  # Debian LXC (pihole, playground-debian). Detect whatever debian-13-standard is
+  # Debian LXC (pihole). Detect whatever debian-13-standard is
   # current (no version hardcoded), download it, and write the exact volume id to a
   # tofu auto.tfvars, so a plain `tofu apply` uses the same value this script did.
   pveam update || true

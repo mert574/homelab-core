@@ -12,7 +12,7 @@ SRC="$HERE/xterm-ghostty.terminfo"
 [ -f "$SRC" ] || { echo "missing $SRC" >&2; exit 1; }
 
 # Debian LXCs (vmid) and Debian VMs (vmid).
-CTS=( "pihole=101" "playground-debian=108" )
+CTS=( "pihole=101" )
 VMS=( "k3s=104" )
 
 echo "== proxmox host =="

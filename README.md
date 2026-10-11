@@ -53,7 +53,7 @@ own README:
 
 ## Guest layout and RAM budget
 
-16GB total. Always-on guests:
+14GB of always-on guests out of 16GB total:
 
 | Guest        | Type | vCPU | RAM    | Role                                 |
 |--------------|------|------|--------|--------------------------------------|
@@ -64,14 +64,10 @@ own README:
 | k3s          | VM   | 4    | 8GB    | stateless web stack, Cilium, the apps |
 | garage       | LXC  | 2    | 0.5GB  | S3 + static asset hosting            |
 | media        | LXC  | 4    | 2GB    | Jellyfin + *arr + discovery          |
-| ccflare      | LXC  | 2    | 2GB    | Anthropic/OpenAI proxy + dashboard   |
 | vaultwarden  | LXC  | 1    | 0.375GB| Bitwarden-compatible password vault  |
 
-These total 16GB exactly, so 0GB nominally free at rest (CI runners are
-ephemeral ARC pods, zero at rest). Actual idle usage sits well under most of
-these `dedicated` figures, but the budgeted total is now flush against the
-16GB wall: lean on swap (`vm.swappiness=10`), stop a heavy on-demand box, or
-trim one guest's `dedicated` if it's tight.
+That leaves ~2GB free at rest (CI runners are ephemeral ARC pods, zero at
+rest). Actual idle usage sits well under most of these `dedicated` figures.
 
 On-demand guests, not autostarted, so ~0 RAM at rest; start one when you need it:
 
@@ -79,12 +75,11 @@ On-demand guests, not autostarted, so ~0 RAM at rest; start one when you need it
 |-------------------|------|------|-----|----------------------------|
 | admin             | LXC  | 2    | 1GB | NixOS break-glass shell    |
 | ai                | LXC  | 2    | 2GB | NixOS AI sandbox, isolated |
-| playground        | LXC  | 2    | 2GB | NixOS scratch box          |
-| playground-debian | LXC  | 2    | 2GB | Debian scratch box         |
 
-With only ~1.5GB free we're at the 16GB wall, so run one heavy on-demand box at a
-time. A few GB of SSD swap (or zram, `vm.swappiness=10`) absorbs spikes, but don't
-let the latency-sensitive boxes (k3s, postgres, redis) actually swap.
+Running both on top of the always-on guests is 17GB nominal on a 16GB box, a
+smaller overcommit than before (on-demand used to total 7GB). A few GB of SSD
+swap (or zram, `vm.swappiness=10`) absorbs it, but don't let the
+latency-sensitive boxes (k3s, postgres, redis) actually swap.
 
 ## Network
 
@@ -101,11 +96,8 @@ install answer file, Layer 0-1, not by OpenTofu).
 | `.103`            | cloudflared (LXC)                           |
 | `.104`            | k3s VM                                       |
 | `.105`            | admin (LXC, NixOS) - break-glass shell      |
-| `.107`            | playground (LXC, NixOS) - scratch box       |
-| `.108`            | playground-debian (LXC, Debian) - scratch box |
 | `.109`            | garage (LXC, NixOS) - S3 + static hosting   |
 | `.110`            | media (LXC, NixOS) - Jellyfin + *arr + scripts |
-| `.111`            | ccflare (LXC, NixOS) - Anthropic/OpenAI proxy  |
 | `.112`            | vaultwarden (LXC, NixOS) - password vault   |
 | `.200` - `.220`   | Cilium LB pool (.200 pinned to the Gateway) |
 
@@ -135,7 +127,7 @@ stays primary, since Wi-Fi can't bridge the guest network.
 - **Postgres + cloudflared are NixOS services, outside the cluster.** `nixos-rebuild`
   installs and runs them (no hollow container). Postgres stays out of k3s for rebuild
   safety; apps reach it over the LAN. Secrets via sops-nix.
-- **Admin + playground + ai are NixOS LXCs, on-demand.** Tooling lives in containers,
+- **Admin + ai are NixOS LXCs, on-demand.** Tooling lives in containers,
   not on the host, so the hypervisor stays clean. None autostart, so they reserve no
   RAM. The host SSH + web console is the break-glass behind them.
 - **AI sandbox isolated on the host.** Untrusted box (claude-code, codex, headless

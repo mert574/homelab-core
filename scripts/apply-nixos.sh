@@ -10,14 +10,13 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 AGE_KEY="${AGE_KEY:-/root/.config/sops/age/keys.txt}"
 
-# host = container vmid (NixOS LXCs only; not k3s (a VM) or playground-debian)
+# host = container vmid (NixOS LXCs only; not k3s, which is a VM)
 #
 # All NixOS guests. cloudflared and media both have their sops files now
 # (cloudflared.creds.enc, mullvad.wg.enc).
 hosts=(
   "postgres=102" "cloudflared=103" "admin=105" "ai=106"
-  "playground=107" "garage=109" "media=110" "ccflare=111"
-  "vaultwarden=112"
+  "garage=109" "media=110" "vaultwarden=112"
 )
 
 archive=/tmp/homelab-core.tgz

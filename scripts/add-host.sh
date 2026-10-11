@@ -3,7 +3,7 @@
 # guests via inject-hosts.sh + networking.extraHosts, and Pi-hole via
 # pihole-setup.sh) AND to your ~/.ssh/config (so `ssh <name>` uses the homelab key).
 #
-#   ./scripts/add-host.sh ccflare.internal 192.168.178.111 [user]
+#   ./scripts/add-host.sh vaultwarden.internal 192.168.178.112 [user]
 #
 # user defaults to root. After it edits nix/lan-hosts, commit + push so the guests
 # and Pi-hole pick up the new name (re-run inject-hosts.sh / pihole-setup.sh).
