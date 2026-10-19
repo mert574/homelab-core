@@ -19,16 +19,24 @@ tofu:
 
 nix:
 	@echo "== nix flake check =="
-	@command -v nix >/dev/null 2>&1 && nix flake check . || echo "  (nix not installed; skipping)"
+	@if command -v nix >/dev/null 2>&1; then \
+		nix flake check .; \
+	else echo "  (nix not installed; skipping)"; fi
 
 k8s:
 	@echo "== kubeconform =="
-	@command -v kubeconform >/dev/null 2>&1 && kubeconform $(KC_FLAGS) $(CLUSTER) || echo "  (kubeconform not installed; skipping)"
+	@if command -v kubeconform >/dev/null 2>&1; then \
+		kubeconform $(KC_FLAGS) $(CLUSTER); \
+	else echo "  (kubeconform not installed; skipping)"; fi
 
 sh:
 	@echo "== shellcheck =="
-	@command -v shellcheck >/dev/null 2>&1 && shellcheck $$(find . -name '*.sh' -not -path './.git/*') || echo "  (shellcheck not installed; skipping)"
+	@if command -v shellcheck >/dev/null 2>&1; then \
+		shellcheck $$(find . -name '*.sh' -not -path './.git/*'); \
+	else echo "  (shellcheck not installed; skipping)"; fi
 
 ci:
 	@echo "== actionlint =="
-	@command -v actionlint >/dev/null 2>&1 && actionlint || echo "  (actionlint not installed or no workflows; skipping)"
+	@if command -v actionlint >/dev/null 2>&1; then \
+		actionlint; \
+	else echo "  (actionlint not installed; skipping)"; fi

@@ -1,8 +1,8 @@
 # Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored.
 # The network values already have correct defaults in variables.tf, so the only
-# things you really must set here are the secrets (api token, password) and your
-# SSH key. Anything sensitive should come from a SOPS-encrypted file or your
-# shell env once we wire that up, not from a plain file you keep.
+# things you must set here are the passwords and your SSH public key.
+# The bootstrap loads these from SOPS as TF_VAR_* environment variables.
+# Prefer that flow over keeping plaintext secrets in this optional file.
 
 # LAN is 192.168.178.0/24 (Fritz!Box). Host is 192.168.178.100.
 # pve_endpoint, lan_gateway, and pihole_ip default to the right values already.

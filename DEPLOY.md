@@ -41,12 +41,12 @@ detail; this is the sequence and the manual bits. Nothing here is auto-run yet.
 - [ ] Runs from `bootstrap.sh` (tofu init/apply). No `terraform.tfvars`: the creds come
       from the sops env as `TF_VAR_*` (`pve_password`, `ct_root_password`, `ssh_public_key`)
 - [ ] SSH key is already set in `nix/modules/base.nix` (the homelab key)
-- [ ] `apply-nixos.sh` skips `cloudflared` + `media` by default (they need Layer-3 creds);
-      run with `HOMELAB_ALL_HOSTS=1` once those secret files exist
+- [ ] Ensure the encrypted service files exist before running `apply-nixos.sh`;
+      it configures all seven NixOS guests, including `cloudflared` and `media`
 
 ## 4. NixOS hosts
 
-- [ ] LAN names come from one file, `network/lan-hosts`. NixOS guests include it via
+- [ ] LAN names come from one file, `nix/lan-hosts`. NixOS guests include it via
       `networking.extraHosts`; `scripts/inject-hosts.sh` (run by the bootstrap) spreads
       it to the Proxmox host, the Debian LXCs and the k3s VM. Re-run it after editing
       the file. The k3s VM step needs its guest agent up, else it skips with a note.

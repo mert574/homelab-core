@@ -6,6 +6,9 @@ Cloudflare tunnels.
 
 The repo is public; the env is encrypted with SOPS + age.
 
+Licensed under [MIT](LICENSE). See [third-party notices](THIRD_PARTY_NOTICES.md)
+and the [roadmap](ROADMAP.md).
+
 ## Hardware
 
 - Lenovo ThinkCentre M720q (Tiny)
